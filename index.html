@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciador Financeiro v10.3 - Corrigido</title> <!-- Versão Atualizada -->
+    <title>Gerenciador Financeiro v10.3 - Corrigido e Responsivo</title> <!-- Versão Atualizada -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Reset Básico e Configurações Globais */
+        /* Reset Básico e Configurações Globais */  
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; }
-        body { display: flex; height: 100vh; background-color: #121212; color: #e0e0e0; overflow: hidden; }
+        body { display: flex; height: 100vh; background-color: #121212; color: #e0e0e0; overflow: hidden; position: relative; }
 
         /* --- Scrollbars Customizadas (Opcional) --- */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -29,33 +29,20 @@
         .sidebar nav ul li a.active { background-color: rgba(88, 166, 255, 0.15); color: #ffffff; font-weight: 600; }
         .sidebar nav ul li a.active i { color: #58a6ff; }
         .sidebar nav ul li a.active::before { content: ''; position: absolute; left: 0; top: 5px; bottom: 5px; width: 4px; background-color: #58a6ff; border-radius: 0 4px 4px 0; }
-
+        
+        /* Overlay para o menu mobile */
+        .menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 99; display: none; opacity: 0; transition: opacity 0.3s ease-in-out; }
+        .menu-overlay.is-active { display: block; opacity: 1; }
+        
         /* --- Conteúdo Principal Wrapper --- */
-        .main-container { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .main-container { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; width: calc(100% - 240px); }
 
         /* --- Barra Superior --- */
         .top-bar { background-color: #1e1e1e; padding: 15px 30px; display: flex; justify-content: flex-end; align-items: center; border-bottom: 1px solid #333; height: 65px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); z-index: 5; }
         .login-placeholder { width: 36px; height: 36px; background-color: #444; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #e0e0e0; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .login-placeholder:hover { transform: scale(1.1); box-shadow: 0 0 10px rgba(88, 166, 255, 0.5); }
-        
-        /* --- Botão do Menu (Hamburguer) - Inicialmente Escondido --- */
-        .menu-toggle-btn {
-            display: none;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 10px;
-            z-index: 1010; 
-        }
-        .menu-toggle-btn span {
-            display: block;
-            width: 24px;
-            height: 3px;
-            background-color: #e0e0e0;
-            margin: 5px 0;
-            border-radius: 2px;
-            transition: all 0.3s ease-in-out;
-        }
+        .menu-toggle-btn { display: none; /* Escondido por padrão */ background: none; border: none; color: #e0e0e0; cursor: pointer; padding: 5px; }
+        .menu-toggle-btn svg { width: 28px; height: 28px; }
 
         /* --- Área de Conteúdo Principal --- */
         .content-area { flex: 1; padding: 35px; overflow-y: auto; background-color: #121212; }
@@ -66,9 +53,9 @@
         /* --- Estilos Comuns Seções --- */
         .section-title { font-size: 1.5em; color: #e0e0e0; margin-bottom: 25px; padding-bottom: 10px; border-bottom: 1px solid #444; font-weight: 600; }
         .summary-section { display: flex; flex-wrap: wrap; gap: 30px; margin-bottom: 35px; }
-        .summary-card, .planning-summary-card, .report-card { background-color: #282828; padding: 25px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4); border: 1px solid #444; flex: 1; min-width: 200px; transition: transform 0.2s ease, box-shadow 0.2s ease; /* Add transition */ }
+        .summary-card, .planning-summary-card, .report-card { background-color: #282828; padding: 25px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4); border: 1px solid #444; flex: 1; min-width: 200px; transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .summary-card:hover, .planning-summary-card:hover, .report-card:hover { transform: translateY(-5px); box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5); }
-        .card-title { font-size: 1.1em; color: #b0b0b0; margin-bottom: 15px; font-weight: 600; } /* Título dentro dos cards */
+        .card-title { font-size: 1.1em; color: #b0b0b0; margin-bottom: 15px; font-weight: 600; }
 
         /* --- Dashboard Específico --- */
         .balance-card .balance-display { font-size: 2.5em; font-weight: 700; color: #ffffff; margin-bottom: 8px; }
@@ -79,12 +66,12 @@
         .graph-card .graph-container { position: relative; height: 160px; width: 100%; }
 
         /* --- Histórico / Tabelas --- */
-        .data-table-container { background-color: #282828; padding: 25px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4); border: 1px solid #444; margin-bottom: 30px; }
+        .data-table-container { background-color: #282828; padding: 25px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4); border: 1px solid #444; margin-bottom: 30px; overflow-x: auto; }
         .data-table-container:last-child { margin-bottom: 0; }
         .monthly-table-container h2 { font-size: 1.3em; margin-bottom: 20px; color: #e0e0e0; font-weight: 600; border-bottom: 1px solid #555; padding-bottom: 10px; }
-        .data-table { width: 100%; border-collapse: collapse; } /* Common class for tables */
+        .data-table { width: 100%; border-collapse: collapse; min-width: 600px; /* Garante que a tabela tenha uma largura mínima antes de rolar */ }
         .data-table thead { border-bottom: 2px solid #555; }
-        .data-table th { padding: 12px 15px; text-align: left; color: #b0b0b0; font-weight: 600; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; }
+        .data-table th { padding: 12px 15px; text-align: left; color: #b0b0b0; font-weight: 600; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
         .data-table tbody tr { border-bottom: 1px solid #383838; transition: background-color 0.2s ease; }
         .data-table tbody tr:last-child { border-bottom: none; }
         .data-table tbody tr:hover:not(.paid) { background-color: rgba(255, 255, 255, 0.04); }
@@ -143,7 +130,7 @@
         #poupanca-content .elite-message { color: #f39c12; border-color: #f39c12; display: none; }
 
         /* --- Contas a Pagar --- */
-        #contas-pagar-content .contas-table-container { margin-top: 0; } /* Remove margem extra */
+        #contas-pagar-content .contas-table-container { margin-top: 0; }
         #contas-pagar-content .contas-table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;}
         .contas-table tbody tr.paid { background-color: rgba(63, 185, 80, 0.1); text-decoration: line-through; }
         .contas-table tbody tr.paid td { color: #777; }
@@ -156,15 +143,24 @@
         .mark-paid-btn:hover { color: #5ae470 !important; transform: scale(1.2); }
         .delete-conta-btn:hover { color: #f85149 !important; }
 
+        /* --- Pessoas Devendo (Nova Seção) --- */
+        #pessoas-devendo-content .data-table-container h3 { font-size: 1.3em; color: #e0e0e0; font-weight: 600; }
+        .pessoas-devendo-table tbody tr.paid { background-color: rgba(63, 185, 80, 0.1); }
+        .pessoas-devendo-table tbody tr.paid td { color: #777; }
+        .pessoas-devendo-table tbody tr.paid .amount { color: #5a9e63; }
+        .pessoas-devendo-table tbody tr.overdue { background-color: rgba(243, 156, 18, 0.08); border-left: 3px solid #f39c12; }
+        .mark-received-btn { color: #3fb950 !important; }
+        .mark-received-btn:hover { color: #5ae470 !important; transform: scale(1.2); }
+        .delete-debtor-btn:hover { color: #f85149 !important; }
+
         /* --- Relatório --- */
         #relatorio-content h3.report-month-title { font-size: 1.3em; color: #e0e0e0; margin-bottom: 20px; font-weight: 600; border-bottom: 1px solid #555; padding-bottom: 10px; }
         .report-section-container { display: flex; flex-direction: column; gap: 30px; }
         .report-summary-section { display: flex; flex-wrap: wrap; gap: 30px; }
-        /* .report-card already defined */
         .report-card h4 { font-size: 1.1em; color: #b0b0b0; margin-bottom: 15px; font-weight: 600; text-align: center; }
         .report-chart-container { position: relative; width: 100%; min-height: 280px; flex-grow: 1; display: flex; align-items: center; justify-content: center;}
-        .report-in-out-container { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 15px; flex-grow: 1; text-align: center; padding: 20px 0; /* Add padding */}
-        .report-in-out-container div { margin-bottom: 10px; /* Add margin between in/out */ }
+        .report-in-out-container { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 15px; flex-grow: 1; text-align: center; padding: 20px 0; }
+        .report-in-out-container div { margin-bottom: 10px; }
         .report-in-out-container .value { font-size: 1.8em; font-weight: 700; display: block; }
         .report-in-out-container .value.income { color: #3fb950; }
         .report-in-out-container .value.expense { color: #f85149; }
@@ -186,9 +182,9 @@
         .modal input:focus, .modal select:focus { border-color: #58a6ff; box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2); outline: none; background-color: #505050; }
         .modal input::placeholder { color: #888; opacity: 1; }
         .modal small { display: block; margin-top: -12px; margin-bottom: 18px; color: #888; font-size: 0.85em;}
-        .modal .form-group { margin-bottom: 18px; } /* Group labels and inputs */
+        .modal .form-group { margin-bottom: 18px; }
         .modal .type-selection, .modal .deadline-selection { display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
-        .modal .deadline-selection > label:first-child { margin-bottom: 8px; /* Space for deadline title */ }
+        .modal .deadline-selection > label:first-child { margin-bottom: 8px; }
         .modal .type-selection label, .modal .deadline-selection label:not(:first-child) { display: flex; align-items: center; cursor: pointer; padding: 12px 15px; border: 1px solid #555; border-radius: 8px; transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease; justify-content: flex-start; font-weight: 500; background-color: #444; }
         .modal .type-selection label:hover, .modal .deadline-selection label:not(:first-child):hover { background-color: #505050; transform: translateY(-2px); }
         .modal .type-selection input[type="radio"], .modal .deadline-selection input[type="radio"] { margin-right: 10px; accent-color: #58a6ff; display: inline-block !important; width: auto; }
@@ -200,6 +196,8 @@
         #add-goal-form button[type="submit"] { background: linear-gradient(135deg, #3498db, #2980b9); } #add-goal-form button[type="submit"]:hover { background: linear-gradient(135deg, #2980b9, #1f618d); }
         #add-conta-form button[type="submit"] { background: linear-gradient(135deg, #e74c3c, #c0392b); }
         #add-conta-form button[type="submit"]:hover { background: linear-gradient(135deg, #c0392b, #a93226); }
+        #add-pessoa-devendo-form button[type="submit"] { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+        #add-pessoa-devendo-form button[type="submit"]:hover { background: linear-gradient(135deg, #27ae60, #229954); }
         .modal button[type="submit"] { color: white; padding: 14px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: 600; width: 100%; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease; margin-top: 15px; }
         .modal button[type="submit"]:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4); }
 
@@ -207,142 +205,88 @@
         .toast-notification { position: fixed; bottom: 25px; right: 25px; background-color: #282828; color: #e0e0e0; padding: 14px 22px; border-radius: 8px; border-left: 4px solid #58a6ff; box-shadow: 0 6px 20px rgba(0,0,0,0.4); z-index: 1001; opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease; transform: translateX(20px); }
         .toast-notification.show { opacity: 1; visibility: visible; transform: translateX(0); }
 
-        /* --- Media Queries para Responsividade --- */
+        /* Estilo para os botões de data e input de data */
+        .date-buttons { display: flex; gap: 10px; margin-bottom: 10px; }
+        .date-button { flex: 1; padding: 12px; border: 1px solid #555; border-radius: 8px; background-color: #444; color: #e0e0e0; cursor: pointer; transition: all 0.3s ease; font-size: 0.9em; text-align: center; }
+        .date-button:hover { background-color: #505050; transform: translateY(-2px); }
+        .date-button.active { border-color: #58a6ff; background-color: rgba(88, 166, 255, 0.15); color: #ffffff; }
+        .modal input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8) brightness(1.1); cursor: pointer; padding: 2px; margin-left: 5px; opacity: 0.75; transition: opacity 0.2s ease; }
+        .modal input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+        /* ================================================= */
+        /* ===========  DESIGN RESPONSIVO (MOBILE) ========= */
+        /* ================================================= */
+
         @media (max-width: 800px) {
-            body {
-                overflow: auto; /* Permitir rolagem vertical no body */
-                display: block; /* Mudar de flex para block */
-            }
+            body { display: block; /* Mudar para block para layout mobile */ }
 
-            /* --- Menu Lateral (Sidebar) em modo mobile --- */
+            /* --- Ajustes do Menu Lateral (Sidebar) para Mobile --- */
             .sidebar {
-                position: fixed;
+                position: fixed; /* Fixar na tela */
                 top: 0;
                 left: 0;
                 height: 100%;
-                transform: translateX(-100%);
-                z-index: 1000;
-                width: 260px;
-                box-shadow: 6px 0 20px rgba(0,0,0,0.5);
+                z-index: 1100; /* Mais alto que o overlay */
+                transform: translateX(-100%); /* Esconder fora da tela por padrão */
+                box-shadow: 4px 0 20px rgba(0,0,0,0.5);
             }
-            .sidebar.open {
-                transform: translateX(0);
-            }
-
-            /* --- Overlay para fechar o menu --- */
-            body.sidebar-open::after {
-                content: '';
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.5);
-                z-index: 999;
-                opacity: 1;
-                visibility: visible;
-                transition: opacity 0.3s ease;
+            .sidebar.is-open {
+                transform: translateX(0); /* Mostrar o menu */
             }
 
-            /* --- Conteúdo Principal em modo mobile --- */
+            /* --- Ajustes do Container Principal para Mobile --- */
             .main-container {
-                width: 100%;
-                height: auto;
-                min-height: 100vh;
-                overflow: visible;
+                width: 100%; /* Ocupar toda a largura */
+                transform: translateX(0); /* Resetar qualquer transformação */
             }
-
-            /* --- Barra Superior (Top Bar) --- */
+            
+            /* --- Ajustes da Barra Superior (Top Bar) para Mobile --- */
             .top-bar {
-                justify-content: space-between;
-                padding: 10px 20px;
-                position: sticky;
-                top: 0;
-                z-index: 998;
+                justify-content: space-between; /* Espaçar o botão de menu e o avatar */
+                padding: 15px 20px;
             }
             .menu-toggle-btn {
-                display: block;
+                display: block; /* Mostrar o botão de menu */
             }
 
-            /* --- Área de Conteúdo --- */
+            /* --- Ajustes da Área de Conteúdo para Mobile --- */
             .content-area {
-                padding: 25px 15px;
-                overflow-y: visible;
+                padding: 20px 15px; /* Reduzir padding */
             }
-
             .section-title {
                 font-size: 1.3em;
             }
-
-            /* --- Cards --- */
-            .summary-section {
-                flex-direction: column;
-                gap: 20px;
+            
+            /* --- Ajustes dos Cards e Gráficos --- */
+            .summary-section, .report-summary-section {
+                gap: 15px; /* Reduzir o espaçamento entre cards */
             }
-            .summary-card, .report-card {
-                min-width: 100%;
+            .summary-card, .planning-summary-card, .report-card {
+                padding: 20px;
+                min-width: 100%; /* Fazer os cards ocuparem a largura total */
             }
             .balance-card .balance-display {
                 font-size: 2em;
             }
-            .graph-card .graph-container {
-                height: 200px;
-            }
-
-            /* --- Tabelas Responsivas --- */
-            .data-table-container, .contas-table-container {
-                overflow-x: auto;
-            }
-            .data-table {
-                min-width: 650px; /* Forçar largura mínima para criar rolagem */
-                white-space: nowrap;
-            }
-            .data-table td, .data-table th {
-                white-space: nowrap;
-            }
-
-            /* --- Planejamento --- */
-            .planning-summary-section {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 15px;
-            }
-            .planning-summary-card {
-                min-width: unset;
-            }
-            .planning-table-actions {
-                flex-direction: column;
-                align-items: flex-start;
-            }
             
-            /* --- Poupança --- */
-            #poupanca-content .goal-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            #poupanca-content .savings-grid-container {
+            /* --- Ajustes das Tabelas --- */
+            /* O container já tem overflow-x: auto, o que é ideal para mobile */
+            .data-table-container {
                 padding: 15px;
             }
-            #poupanca-content .savings-grid {
-                grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
-                max-width: 100%;
-            }
-            #poupanca-content .goal-info {
-                grid-template-columns: 1fr;
-            }
 
-            /* --- Relatório --- */
-            .report-summary-section {
-                flex-direction: column;
-            }
-
-            /* --- Modais --- */
+            /* --- Ajustes dos Modais --- */
             .modal-content {
-                padding: 30px 20px;
-                width: 95%;
+                width: 95%; /* Ocupar mais da tela */
+                padding: 25px 20px;
+            }
+            .modal h2 {
+                font-size: 1.4em;
+            }
+            .date-buttons {
+                flex-wrap: wrap; /* Permitir que os botões de data quebrem a linha se necessário */
             }
         }
-
     </style>
 </head>
 <body>
@@ -356,22 +300,26 @@
                  <li><a href="#" class="nav-link" data-section="futuros-gastos"><i>🔮</i> Planejamento</a></li>
                  <li><a href="#" class="nav-link" data-section="poupanca"><i>🐷</i> Poupança</a></li>
                  <li><a href="#" class="nav-link" data-section="contas-pagar"><i>🧾</i> Contas a pagar</a></li>
+                 <li><a href="#" class="nav-link" data-section="pessoas-devendo"><i>🤝</i> Pessoas Devendo</a></li>
                  <li><a href="#" class="nav-link" data-section="relatorio"><i>📈</i> Relatório</a></li>
                  <li><a href="#" class="nav-link" data-section="objetivos"><i>🎯</i> Objetivos</a></li>
             </ul>
         </nav>
     </aside>
 
+    <!-- Overlay para o menu mobile -->
+    <div class="menu-overlay"></div>
+
     <!-- Wrapper Principal -->
     <div class="main-container">
         <!-- Barra Superior -->
         <header class="top-bar">
-             <button class="menu-toggle-btn" aria-label="Abrir menu">
-                <span></span>
-                <span></span>
-                <span></span>
+            <button id="menu-toggle-btn" class="menu-toggle-btn" aria-label="Abrir menu">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
             </button>
-            <div class="login-placeholder">U</div> 
+            <div class="login-placeholder">U</div>
         </header>
 
         <!-- Área de Conteúdo Principal -->
@@ -393,11 +341,9 @@
                 </section>
                 <section id="history-section" class="data-table-container">
                      <h3 class="section-title" style="margin-bottom: 20px; border: none; padding-bottom: 0;">Histórico de Movimentações</h3>
-                     <!-- Placeholder while loading or if empty -->
                      <div class="monthly-table-container" id="history-placeholder" style="display: none;">
                         <p class="no-data-message">Nenhuma movimentação registrada ainda.</p>
                      </div>
-                     <!-- Tabelas mensais serão inseridas aqui -->
                 </section>
             </div>
 
@@ -419,7 +365,6 @@
                     <table class="planning-table data-table">
                         <thead><tr><th>O que</th><th>Valor</th><th>Tipo</th><th>Entrou</th><th>Saiu</th><th>Total Plano</th><th>Ações</th></tr></thead>
                         <tbody id="planning-tbody">
-                            <!-- Placeholder row -->
                             <tr id="no-planning-placeholder" style="display: none;"><td colspan="7" class="no-data-message">Nenhum item no plano.</td></tr>
                         </tbody>
                     </table>
@@ -462,12 +407,31 @@
                     </div>
                     <table class="contas-table data-table">
                         <thead><tr><th>Descrição</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr></thead>
-                        <tbody id="contas-tbody">
-                            <!-- Linhas das contas serão inseridas aqui -->
-                        </tbody>
+                        <tbody id="contas-tbody"></tbody>
                     </table>
                     <div id="no-contas-message" class="no-data-message" style="display: none;">
                         Nenhuma conta registrada.
+                    </div>
+                </div>
+            </div>
+
+            <!-- ====================== Seção Pessoas Devendo (Nova) ====================== -->
+            <div id="pessoas-devendo-content" class="content-section">
+                <h2 class="section-title">Pessoas Devendo a Mim</h2>
+                <button id="add-pessoa-devendo-btn" class="add-button" style="margin-bottom: 25px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"></path></svg>
+                    Adicionar Devedor
+                </button>
+                <div class="data-table-container">
+                    <div class="pessoas-devendo-table-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                         <h3>Lista de Devedores</h3>
+                    </div>
+                    <table class="pessoas-devendo-table data-table">
+                        <thead><tr><th>Nome</th><th>Valor</th><th>Data Empréstimo</th><th>Status</th><th>Ações</th></tr></thead>
+                        <tbody id="pessoas-devendo-tbody"></tbody>
+                    </table>
+                    <div id="no-pessoas-devendo-message" class="no-data-message" style="display: none;">
+                        Ninguém te devendo no momento. 🎉
                     </div>
                 </div>
             </div>
@@ -522,9 +486,15 @@
         <div class="modal-content">
             <span class="close-modal-btn" data-modal-id="add-transaction-modal">&times;</span>
             <h2>Adicionar Movimentação</h2>
-            <form id="transaction-form" novalidate> <!-- novalidate to handle validation manually -->
+            <form id="transaction-form" novalidate>
                 <div class="form-group">
                     <label for="tx-date">Data:</label>
+                    <div class="date-buttons">
+                        <button type="button" class="date-button yesterday" data-days="-1">Ontem</button>
+                        <button type="button" class="date-button today active" data-days="0">Hoje</button>
+                        <button type="button" class="date-button tomorrow" data-days="1">Amanhã</button>
+                        <button type="button" class="date-button other" data-days="7">+7 dias</button>
+                    </div>
                     <input type="date" id="tx-date" required>
                 </div>
                 <div class="form-group">
@@ -575,7 +545,7 @@
                 </div>
                 <div class="form-group">
                     <label for="goal-modal-amount">Valor (limite R$ 50k):</label>
-                    <input type="number" id="goal-modal-amount" step="0.01" placeholder="1000.00" required min="1" max="50000"> <!-- Corrected max -->
+                    <input type="number" id="goal-modal-amount" step="0.01" placeholder="1000.00" required min="1" max="50000">
                 </div>
                 <div class="deadline-selection">
                     <label>Prazo:</label>
@@ -602,10 +572,48 @@
                 </div>
                 <div class="form-group">
                     <label for="conta-dueDate">Data de Vencimento:</label>
+                    <div class="date-buttons">
+                        <button type="button" class="date-button today" data-days="0">Hoje</button>
+                        <button type="button" class="date-button tomorrow" data-days="1">Amanhã</button>
+                        <button type="button" class="date-button other active" data-days="30">+30 dias</button>
+                        <button type="button" class="date-button other" data-days="60">+60 dias</button>
+                    </div>
                     <input type="date" id="conta-dueDate" required>
                     <small>(Padrão: 1 mês a partir de hoje)</small>
                 </div>
                 <button type="submit">Adicionar Conta</button>
+            </form>
+        </div>
+    </div>
+    <div id="add-pessoa-devendo-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal-btn" data-modal-id="add-pessoa-devendo-modal">&times;</span>
+            <h2>Adicionar Pessoa Devendo</h2>
+            <form id="add-pessoa-devendo-form" novalidate>
+                <div class="form-group">
+                    <label for="pessoa-devendo-nome">Nome da Pessoa:</label>
+                    <input type="text" id="pessoa-devendo-nome" placeholder="Ex: João Silva" required maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label for="pessoa-devendo-amount">Valor Devido:</label>
+                    <input type="number" id="pessoa-devendo-amount" step="0.01" placeholder="0.00" required min="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="pessoa-devendo-date">Data do Empréstimo:</label>
+                    <div class="date-buttons">
+                        <button type="button" class="date-button yesterday" data-days="-1">Ontem</button>
+                        <button type="button" class="date-button today active" data-days="0">Hoje</button>
+                        <button type="button" class="date-button tomorrow" data-days="1">Amanhã</button>
+                        <button type="button" class="date-button other" data-days="7">+7 dias</button>
+                    </div>
+                    <input type="date" id="pessoa-devendo-date" required>
+                    <small>(Data em que o dinheiro foi emprestado)</small>
+                </div>
+                <div class="form-group">
+                    <label for="pessoa-devendo-description">Descrição (Opcional):</label>
+                    <input type="text" id="pessoa-devendo-description" placeholder="Ex: Empréstimo para lanche" maxlength="200">
+                </div>
+                <button type="submit">Adicionar Devedor</button>
             </form>
         </div>
     </div>
@@ -617,15 +625,21 @@
         document.addEventListener('DOMContentLoaded', () => {
             // --- Seletores DOM Agrupados ---
             const getElement = (id) => document.getElementById(id); // Helper
+            const getSelector = (selector) => document.querySelector(selector);
 
-            // Gerais & Notificação
+            // Gerais & Notificação & Mobile Menu
             const toastNotification = getElement('toast-notification');
             const navLinks = document.querySelectorAll('.sidebar .nav-link');
+            const menuToggleBtn = getElement('menu-toggle-btn');
+            const sidebar = getSelector('.sidebar');
+            const menuOverlay = getSelector('.menu-overlay');
+
             const contentSections = {
                 'dashboard': getElement('dashboard-content'),
                 'futuros-gastos': getElement('futuros-gastos-content'),
                 'poupanca': getElement('poupanca-content'),
                 'contas-pagar': getElement('contas-pagar-content'),
+                'pessoas-devendo': getElement('pessoas-devendo-content'), // Nova seção
                 'relatorio': getElement('relatorio-content'),
                 'objetivos': getElement('objetivos-content'),
             };
@@ -670,6 +684,11 @@
             const contasTbody = getElement('contas-tbody');
             const noContasMessage = getElement('no-contas-message');
 
+            // Pessoas Devendo (Nova seção)
+            const addPessoaDevendoBtn = getElement('add-pessoa-devendo-btn');
+            const pessoasDevendoTbody = getElement('pessoas-devendo-tbody');
+            const noPessoasDevendoMessage = getElement('no-pessoas-devendo-message');
+
             // Relatório
             const reportCurrentMonthEl = getElement('report-current-month');
             const topExpensesChartCanvas = getElement('top-expenses-chart');
@@ -688,25 +707,29 @@
             const addGoalForm = getElement('add-goal-form');
             const addContaModal = getElement('add-conta-modal');
             const addContaForm = getElement('add-conta-form');
+            const addPessoaDevendoModal = getElement('add-pessoa-devendo-modal');
+            const addPessoaDevendoForm = getElement('add-pessoa-devendo-form');
 
             // --- Constantes ---
             const STORAGE_KEYS = {
                 transactions: 'financeTransactions_v10.3',
                 planning: 'financePlanningItems_v10.3',
                 goal: 'financeCurrentGoal_v10.3',
-                bills: 'financeContasAPagar_v10.3'
+                bills: 'financeContasAPagar_v10.3',
+                debtors: 'financeDebtors_v10.3'
             };
             const monthNamesPtBr = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
             const monthNamesFullPtBr = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
             const SAVINGS_GRID_VALUES = [5,10,10,5,100,5,20,5,100,20,5,20,50,50,20,50,50,10,100,5,20,10,5,20,5,10,20,10,10,50,20,100,5,10,5,50,20,200,200,100,20,10,10,20,10,5,10,5,10,50,10,5,10,20,10,10,20,50,50,5,50,5,200,10,20,5,50,20,5,20,10,20,10,5,20,10,100,50,10,50,50,20,5,50,100,20,5,20,5,500,10,5,5,10,100,5,20,100,5,10,5,20,100,5,20,50,20,50,50,10,20,200,5,50,10,10,10,5,5,10,10,20,500,20,10,20,500,20,5,50,5,20,20,200,5,5,10,50,200,5,20,100,50,50,10,10,20,5,50,50,100,10,5,5,20,10,100,50,100,5,200,20,5,20,5,20,100,5,50,10,20,5,100,5,10,50,20,10,100,5,5,100,20,200,5,20,5,20,20,100,5,20,5,20,50,10,20,20,5,20,100,5,20,10,5,10,10,5,20,5,20,5,20,5,20,100,5,20,10,100,5,10,100,5,10,5,20];
             function shuffleArray(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a;}
-            const fixedSavingsGridValues = shuffleArray([...SAVINGS_GRID_VALUES]); // Shuffle a copy, ensure it's fixed per session load
+            const fixedSavingsGridValues = shuffleArray([...SAVINGS_GRID_VALUES]);
 
             // --- Estado ---
             let transactions = [];
             let planningItems = [];
             let currentGoal = null;
             let contasAPagar = [];
+            let pessoasDevendo = [];
             let historyChartInstance = null;
             let topExpensesChartInstance = null;
             let netWorthChartInstance = null;
@@ -722,100 +745,65 @@
                 }, duration);
             };
             const escapeHtml = (unsafe) => unsafe ? unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;") : "";
-            // Checks if a string can be parsed into a valid date (basic check)
             const isValidDateString = (dateString) => dateString && !isNaN(Date.parse(dateString + 'T00:00:00Z'));
-            // Formats a date string (YYYY-MM-DD) to DD/MM/YYYY using UTC
             const formatDate = (dateString) => {
                 if (!isValidDateString(dateString)) return '--/--/----';
                 try {
-                    // Create date as UTC and format using UTC methods
                     const date = new Date(dateString + 'T00:00:00Z');
                     return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-                } catch (e) {
-                    console.error("Error formatting date:", dateString, e);
-                    return '--/--/----';
-                }
+                } catch (e) { console.error("Error formatting date:", dateString, e); return '--/--/----'; }
             };
-            // Calculates difference in days between two Date objects (treats them as UTC dates)
             const daysBetween = (date1, date2) => {
-                const oneDay = 86400000; // milliseconds in one day
-                // Get UTC timestamps for midnight of each date
+                const oneDay = 86400000;
                 const utc1 = Date.UTC(date1.getUTCFullYear(), date1.getUTCMonth(), date1.getUTCDate());
                 const utc2 = Date.UTC(date2.getUTCFullYear(), date2.getUTCMonth(), date2.getUTCDate());
                 return Math.round((utc1 - utc2) / oneDay);
             };
-            // Gets today's date as YYYY-MM-DD string
-            const getTodayDateString = () => new Date().toISOString().split('T')[0];
-            // Gets current month as YYYY-MM string
-            const getCurrentMonthYearString = () => new Date().toISOString().substring(0, 7);
 
             // --- Persistência de Dados ---
             const loadData = () => {
-                const loadItem = (key) => {
-                    try { return JSON.parse(localStorage.getItem(key)) || []; } catch (e) { console.error(`Error loading ${key}:`, e); return []; }
-                };
-                const loadGoal = () => {
-                     try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.goal)) || null; } catch (e) { console.error('Error loading goal:', e); return null; }
-                };
+                const loadItem = (key) => { try { return JSON.parse(localStorage.getItem(key)) || []; } catch (e) { console.error(`Error loading ${key}:`, e); return []; } };
+                const loadGoal = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.goal)) || null; } catch (e) { console.error('Error loading goal:', e); return null; } };
                 transactions = loadItem(STORAGE_KEYS.transactions);
                 planningItems = loadItem(STORAGE_KEYS.planning);
                 contasAPagar = loadItem(STORAGE_KEYS.bills);
+                pessoasDevendo = loadItem(STORAGE_KEYS.debtors);
                 currentGoal = loadGoal();
             };
-            const saveData = (key, data) => {
-                try {
-                    localStorage.setItem(key, JSON.stringify(data));
-                } catch (e) {
-                    console.error(`Error saving ${key}:`, e);
-                    showToast(`Erro ao salvar dados (${key}). Verifique o espaço de armazenamento.`);
-                }
-            };
-
+            const saveData = (key, data) => { try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) { console.error(`Error saving ${key}:`, e); showToast(`Erro ao salvar dados (${key}).`); } };
+            
+            // --- CÁLCULOS & RENDERIZAÇÕES (O JavaScript principal permanece o mesmo) ---
+            // Nenhuma mudança é necessária aqui, pois a lógica de dados não muda.
+            // ... (todo o bloco de funções de cálculo e renderização do seu script original)
             // --- Funções de Cálculo Core ---
-            // Calculates running balance *after* each transaction and overall balance evolution
             const calculateRunningBalances = () => {
-                const balances = {}; // Stores balance keyed by transaction ID
+                const balances = {};
                 let currentBalance = 0;
-                const evolutionData = []; // Stores { date: 'YYYY-MM-DD', balance: number }
+                const evolutionData = [];
 
-                // Create a copy and sort chronologically, using ID as a stable tie-breaker
                 const sortedTransactions = [...transactions].sort((a, b) => {
-                    // Handle potential invalid dates gracefully
                     const timeA = isValidDateString(a.date) ? new Date(a.date + 'T00:00:00Z').getTime() : 0;
                     const timeB = isValidDateString(b.date) ? new Date(b.date + 'T00:00:00Z').getTime() : 0;
-
-                    if (timeA === timeB) {
-                        return (a.id || 0) - (b.id || 0); // Sort by ID if dates are the same
-                    }
+                    if (timeA === timeB) { return (a.id || 0) - (b.id || 0); }
                     return timeA - timeB;
                 });
 
                 sortedTransactions.forEach(tx => {
-                    if (typeof tx.amount !== 'number' || isNaN(tx.amount)) {
-                         console.warn("Skipping transaction with invalid amount:", tx);
-                         return; // Skip calculation if amount is invalid
-                    }
+                    if (typeof tx.amount !== 'number' || isNaN(tx.amount)) { return; }
                     const change = (tx.type === 'income' ? tx.amount : -tx.amount);
                     currentBalance += change;
-                    if (tx.id) {
-                        balances[tx.id] = currentBalance; // Store balance *after* this transaction
-                    }
-                    if (isValidDateString(tx.date)) {
-                        evolutionData.push({ date: tx.date, balance: currentBalance });
-                    }
+                    if (tx.id) { balances[tx.id] = currentBalance; }
+                    if (isValidDateString(tx.date)) { evolutionData.push({ date: tx.date, balance: currentBalance }); }
                 });
                 return { transactionBalances: balances, evolutionData: evolutionData };
             };
-            // Groups transactions by month (YYYY-MM)
              const groupTransactionsByMonth = () => {
                  const grouped = {};
                  transactions.forEach(tx => {
                      if (isValidDateString(tx.date)) {
-                         const monthKey = tx.date.substring(0, 7); // YYYY-MM
+                         const monthKey = tx.date.substring(0, 7);
                          if (!grouped[monthKey]) grouped[monthKey] = [];
                          grouped[monthKey].push(tx);
-                     } else {
-                        console.warn("Transaction with invalid date skipped in grouping:", tx);
                      }
                  });
                  return grouped;
@@ -828,7 +816,7 @@
                 if (!balanceValueEl || !entryExitSummaryEl) return;
                 let totalIncome = 0, totalExpense = 0, incomeCount = 0, expenseCount = 0;
                 transactions.forEach(tx => {
-                    if (typeof tx.amount !== 'number' || isNaN(tx.amount)) return; // Skip invalid amounts
+                    if (typeof tx.amount !== 'number' || isNaN(tx.amount)) return;
                     if (tx.type === 'income') { totalIncome += tx.amount; incomeCount++; }
                     else if (tx.type === 'expense') { totalExpense += tx.amount; expenseCount++; }
                 });
@@ -839,40 +827,46 @@
             // Dashboard: Tabela de Histórico Mensal
             const renderMonthlyTables = () => {
                 if (!historySectionContainer || !historyPlaceholder) return;
-                // Clear all except the title h3
-                while (historySectionContainer.children.length > 1) {
-                    historySectionContainer.removeChild(historySectionContainer.lastChild);
-                }
+                historySectionContainer.innerHTML = '';
                 historyPlaceholder.style.display = 'none';
 
                 const groupedTransactions = groupTransactionsByMonth();
-                const { transactionBalances } = calculateRunningBalances(); // Get balances after each tx
-                const months = Object.keys(groupedTransactions).sort().reverse(); // Newest month first
+                const { transactionBalances } = calculateRunningBalances();
+                const months = Object.keys(groupedTransactions).sort().reverse();
 
                 if (months.length === 0) {
+                    const titleH3 = document.createElement('h3');
+                    titleH3.className = 'section-title';
+                    titleH3.style.marginBottom = '20px';
+                    titleH3.style.border = 'none';
+                    titleH3.style.paddingBottom = '0';
+                    titleH3.textContent = 'Histórico de Movimentações';
+                    historySectionContainer.appendChild(titleH3);
                     historySectionContainer.appendChild(historyPlaceholder);
                     historyPlaceholder.style.display = 'block';
                     return;
                 }
+                
+                const mainTitleH3 = document.createElement('h3');
+                mainTitleH3.className = 'section-title';
+                mainTitleH3.style.marginBottom = '20px';
+                mainTitleH3.style.border = 'none';
+                mainTitleH3.style.paddingBottom = '0';
+                mainTitleH3.textContent = 'Histórico de Movimentações';
+                historySectionContainer.appendChild(mainTitleH3);
 
                 months.forEach(monthKey => {
                     const [year, month] = monthKey.split('-').map(Number);
                     const monthName = monthNamesFullPtBr[month - 1];
                     const monthTransactions = groupedTransactions[monthKey];
-
                     const monthContainer = document.createElement('div');
                     monthContainer.className = 'monthly-table-container';
                     monthContainer.id = `month-${monthKey}`;
                     monthContainer.innerHTML = `<h2>${monthName} ${year}</h2>`;
-
                     const table = document.createElement('table');
-                    table.className = 'transactions-table data-table'; // Use common class
-                    table.innerHTML = `
-                        <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Tipo</th><th>Saldo Após</th><th>Ações</th></tr></thead>
-                        <tbody></tbody>`; // Renamed "Total Geral"
+                    table.className = 'transactions-table data-table';
+                    table.innerHTML = `<thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Tipo</th><th>Saldo Após</th><th>Ações</th></tr></thead><tbody></tbody>`;
                     const tbody = table.querySelector('tbody');
-
-                    // Sort within month: newest first, then by ID for stability on same day
                     monthTransactions.sort((a, b) => {
                         const timeA = isValidDateString(a.date) ? new Date(a.date + 'T00:00:00Z').getTime() : 0;
                         const timeB = isValidDateString(b.date) ? new Date(b.date + 'T00:00:00Z').getTime() : 0;
@@ -884,51 +878,39 @@
                         const amountClass = isExpense ? 'expense' : 'income';
                         const typeText = isExpense ? 'Saída' : 'Entrada';
                         const typeClass = isExpense ? 'type-expense' : 'type-income';
-                        // Get the running balance *after* this transaction occurred
                         const transactionBalance = transactionBalances[tx.id] ?? '---';
-                        // Format date as DD/MM using UTC date object
-                        const formattedDate = formatDate(tx.date).substring(0, 5); // Get only DD/MM
-
+                        const formattedDate = formatDate(tx.date).substring(0, 5);
                         tr.innerHTML = `
                             <td>${formattedDate}</td>
                             <td>${escapeHtml(tx.description)}</td>
                             <td class="amount ${amountClass}"><span class="amount-value">${formatCurrency(tx.amount)}</span></td>
                             <td class="type"><span class="${typeClass}">${typeText}</span></td>
                             <td>${formatCurrency(transactionBalance)}</td>
-                            <td class="actions">
-                                <button class="delete-btn" data-id="${tx.id}" title="Excluir">🗑️</button>
-                            </td>`;
+                            <td class="actions"><button class="delete-btn" data-id="${tx.id}" title="Excluir">🗑️</button></td>`;
                         tbody.appendChild(tr);
                     });
-
                     monthContainer.appendChild(table);
                     historySectionContainer.appendChild(monthContainer);
                 });
-
-                // Add delete listeners AFTER all tables are in the DOM
                 historySectionContainer.querySelectorAll('.delete-btn').forEach(button => {
-                    button.removeEventListener('click', handleDeleteTransaction); // Prevent duplicates
+                    button.removeEventListener('click', handleDeleteTransaction);
                     button.addEventListener('click', handleDeleteTransaction);
                 });
             };
 
             // Planejamento: Tabela e Resumo
-            const renderPlanningAll = () => {
-                renderPlanningTable(); // Summary is updated within renderPlanningTable
-            };
+            const renderPlanningAll = () => { renderPlanningTable(); };
             const renderPlanningTable = () => {
                 if (!planningTbody || !noPlanningPlaceholder) return;
-                planningTbody.innerHTML = ''; // Clear previous rows
+                planningTbody.innerHTML = '';
                 noPlanningPlaceholder.style.display = 'none';
-
-                let runningPlannedTotal = 0;
-                let totalPlannedIncome = 0, totalPlannedExpense = 0;
+                let runningPlannedTotal = 0, totalPlannedIncome = 0, totalPlannedExpense = 0;
 
                 if (planningItems.length === 0) {
                     noPlanningPlaceholder.style.display = 'table-row';
                 } else {
                     planningItems.forEach(item => {
-                        if (typeof item.amount !== 'number' || isNaN(item.amount)) return; // Skip invalid
+                        if (typeof item.amount !== 'number' || isNaN(item.amount)) return;
                         const tr = document.createElement('tr');
                         const isExpense = item.type === 'expense';
                         const typeText = isExpense ? 'Saída' : 'Entrada';
@@ -937,27 +919,21 @@
                         const expenseValue = isExpense ? item.amount : 0;
                         runningPlannedTotal += (isExpense ? -item.amount : item.amount);
                         if (isExpense) totalPlannedExpense += item.amount; else totalPlannedIncome += item.amount;
-
                         tr.innerHTML = `
-                            <td>${escapeHtml(item.description)}</td>
-                            <td class="amount">${formatCurrency(item.amount)}</td>
+                            <td>${escapeHtml(item.description)}</td><td class="amount">${formatCurrency(item.amount)}</td>
                             <td class="type"><span class="${typeClass}">${typeText}</span></td>
                             <td class="plan-income-col ${incomeValue > 0 ? 'has-value' : ''}">${formatCurrency(incomeValue)}</td>
                             <td class="plan-expense-col ${expenseValue > 0 ? 'has-value' : ''}">${formatCurrency(expenseValue)}</td>
                             <td>${formatCurrency(runningPlannedTotal)}</td>
-                            <td class="actions">
-                                <button class="delete-plan-item-btn" data-id="${item.id}" title="Remover Item do Plano">🗑️</button>
-                            </td>`;
+                            <td class="actions"><button class="delete-plan-item-btn" data-id="${item.id}" title="Remover Item do Plano">🗑️</button></td>`;
                         planningTbody.appendChild(tr);
                     });
-
-                    // Add listeners AFTER table is in DOM
                     planningTbody.querySelectorAll('.delete-plan-item-btn').forEach(button => {
-                        button.removeEventListener('click', handleDeletePlanItem); // Prevent duplicates
+                        button.removeEventListener('click', handleDeletePlanItem);
                         button.addEventListener('click', handleDeletePlanItem);
                     });
                 }
-                 renderPlanningSummary(totalPlannedIncome, totalPlannedExpense); // Update summary card
+                 renderPlanningSummary(totalPlannedIncome, totalPlannedExpense);
             };
             const renderPlanningSummary = (totalPlannedIncome, totalPlannedExpense) => {
                 if (!planBalanceEl || !planProfitPctEl || !planExpensePctEl || !planTotalExpenseEl || !planTotalIncomeEl) return;
@@ -982,29 +958,24 @@
                     return { savedCount: 0, percent: 0, currentSaved: 0, daysElapsed: 0 };
                 }
                 let savedCount = 0; let currentSaved = 0;
-                // Iterate through the saved state and sum up corresponding values from the fixed grid
                 for (let i = 0; i < Math.min(currentGoal.squares.length, fixedSavingsGridValues.length); i++) {
                     if (currentGoal.squares[i]) {
                         savedCount++;
-                        currentSaved += fixedSavingsGridValues[i] || 0; // Add value if square is saved
+                        currentSaved += fixedSavingsGridValues[i] || 0;
                     }
                 }
                 let percent = 0;
-                if (currentGoal.targetAmount > 0) {
-                    percent = (currentSaved / currentGoal.targetAmount) * 100;
-                }
-                percent = Math.max(0, Math.min(percent, 100)); // Clamp percentage
-
+                if (currentGoal.targetAmount > 0) { percent = (currentSaved / currentGoal.targetAmount) * 100; }
+                percent = Math.max(0, Math.min(percent, 100));
                 let daysElapsed = 0;
                 if (currentGoal.startDate && isValidDateString(currentGoal.startDate)) {
                     try {
                         const startDate = new Date(currentGoal.startDate + 'T00:00:00Z');
-                        const today = new Date(); // Use local time for "today" to calculate elapsed days naturally
+                        const today = new Date();
                         const todayUTCStart = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-                        daysElapsed = Math.max(0, daysBetween(todayUTCStart, startDate)); // Ensure non-negative
+                        daysElapsed = Math.max(0, daysBetween(todayUTCStart, startDate));
                     } catch(e) { console.error("Error calculating days elapsed:", e); }
                 }
-
                 return { savedCount, percent, currentSaved, daysElapsed };
             };
             const renderGoalSection = () => {
@@ -1012,7 +983,7 @@
                 if (noGoalMessageDiv) noGoalMessageDiv.style.display = hasGoal ? 'none' : 'block';
                 if (goalActiveDetailsDiv) goalActiveDetailsDiv.style.display = hasGoal ? 'block' : 'none';
                 if (addGoalBtn) addGoalBtn.style.display = hasGoal ? 'none' : 'inline-flex';
-                if (eliteMessageDiv) eliteMessageDiv.style.display = 'none'; // Hide elite message by default
+                if (eliteMessageDiv) eliteMessageDiv.style.display = 'none';
 
                 if (hasGoal && currentGoal) {
                     const progress = calculateGoalProgress();
@@ -1024,47 +995,34 @@
                     if (goalCurrentSavedEl) goalCurrentSavedEl.textContent = formatCurrency(progress.currentSaved);
                     if (goalStartDateEl) goalStartDateEl.textContent = formatDate(currentGoal.startDate);
                     if (goalEstimatedCompletionEl) goalEstimatedCompletionEl.textContent = formatDate(currentGoal.estimatedCompletionDate);
-                    renderSavingsGrid(); // Render grid only if goal exists
+                    renderSavingsGrid();
                 } else {
-                    // Reset progress display if no goal
                     if (goalProgressBar) goalProgressBar.style.width = '0%';
                     if (goalProgressPercent) goalProgressPercent.textContent = '--%';
                     if (goalTimeElapsed) goalTimeElapsed.textContent = '';
-                    if (savingsGridEl) savingsGridEl.innerHTML = ''; // Clear grid
+                    if (savingsGridEl) savingsGridEl.innerHTML = '';
                 }
             };
             const renderSavingsGrid = () => {
                  if (!savingsGridEl || !currentGoal || !currentGoal.squares || !Array.isArray(currentGoal.squares)) return;
-                 savingsGridEl.innerHTML = ''; // Clear previous squares
-                 const numSquares = Math.min(100, fixedSavingsGridValues.length); // Display max 100 squares
-
-                 // Ensure goal.squares has the correct length
+                 savingsGridEl.innerHTML = '';
+                 const numSquares = Math.min(100, fixedSavingsGridValues.length);
                  if (currentGoal.squares.length !== numSquares) {
-                    // Adjust the array length if needed (e.g., if it was saved with a different length previously)
                     const newSquares = Array(numSquares).fill(false);
-                    for(let i = 0; i < Math.min(currentGoal.squares.length, numSquares); i++) {
-                        newSquares[i] = currentGoal.squares[i];
-                    }
+                    for(let i = 0; i < Math.min(currentGoal.squares.length, numSquares); i++) { newSquares[i] = currentGoal.squares[i]; }
                     currentGoal.squares = newSquares;
                  }
-
-
                  for (let i = 0; i < numSquares; i++) {
                     const square = document.createElement('div');
                     const value = fixedSavingsGridValues[i] || 0;
                     const valueStr = value.toString();
                     square.className = 'savings-square';
                     square.dataset.index = i;
-                    square.dataset.valueLength = valueStr.length; // For potential CSS styling based on length
+                    square.dataset.valueLength = valueStr.length;
                     square.textContent = valueStr;
                     square.title = `Marcar ${formatCurrency(value)}`;
-
-                    if (currentGoal.squares[i]) { // Check the state from currentGoal
-                        square.classList.add('saved');
-                        square.title = `Salvo! (${formatCurrency(value)})`;
-                    }
-
-                    square.removeEventListener('click', handleSquareClick); // PREVENT DUPLICATES
+                    if (currentGoal.squares[i]) { square.classList.add('saved'); square.title = `Salvo! (${formatCurrency(value)})`; }
+                    square.removeEventListener('click', handleSquareClick);
                     square.addEventListener('click', handleSquareClick);
                     savingsGridEl.appendChild(square);
                 }
@@ -1073,721 +1031,297 @@
             // Contas a Pagar: Tabela
             const renderContasAPagar = () => {
                 if (!contasTbody || !noContasMessage) return;
-                contasTbody.innerHTML = ''; // Clear previous
+                contasTbody.innerHTML = '';
                 noContasMessage.style.display = 'none';
-
                 const sortedContas = [...contasAPagar].sort((a, b) => {
-                    // Handle invalid dates by treating them as very old or very new depending on paid status
-                    const dateAValid = isValidDateString(a.dueDate);
-                    const dateBValid = isValidDateString(b.dueDate);
-                    const dateA = dateAValid ? new Date(a.dueDate + 'T00:00:00Z') : (a.isPaid ? new Date(0) : new Date(8640000000000000)); // Oldest/newest possible
+                    const dateAValid = isValidDateString(a.dueDate); const dateBValid = isValidDateString(b.dueDate);
+                    const dateA = dateAValid ? new Date(a.dueDate + 'T00:00:00Z') : (a.isPaid ? new Date(0) : new Date(8640000000000000));
                     const dateB = dateBValid ? new Date(b.dueDate + 'T00:00:00Z') : (b.isPaid ? new Date(0) : new Date(8640000000000000));
-
-                    // Sort logic: Unpaid first, then by due date (oldest first). Paid last, then by due date (newest first).
-                    if (a.isPaid !== b.isPaid) return a.isPaid ? 1 : -1; // Unpaid come before paid
-                    return a.isPaid ? (dateB - dateA) : (dateA - dateB); // Paid: newest first; Unpaid: oldest first
+                    if (a.isPaid !== b.isPaid) return a.isPaid ? 1 : -1;
+                    return a.isPaid ? (dateB - dateA) : (dateA - dateB);
                 });
 
-                if (sortedContas.length === 0) {
-                    noContasMessage.style.display = 'block';
-                    return;
-                }
-
+                if (sortedContas.length === 0) { noContasMessage.style.display = 'block'; return; }
                 const today = new Date();
-                // Get midnight UTC of today for accurate comparison with stored UTC dates
                 const todayUTCStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-
                 sortedContas.forEach(conta => {
-                    if (typeof conta.amount !== 'number' || isNaN(conta.amount)) return; // Skip invalid
+                    if (typeof conta.amount !== 'number' || isNaN(conta.amount)) return;
                     const tr = document.createElement('tr');
-                    let statusText = 'Pendente';
-                    let statusClass = '';
-                    let dueDateTextClass = '';
+                    let statusText = 'Pendente', statusClass = '', dueDateTextClass = '';
                     const isDateValid = isValidDateString(conta.dueDate);
                     const dueDateObj = isDateValid ? new Date(conta.dueDate + 'T00:00:00Z') : null;
-
-                    if (conta.isPaid) {
-                        statusText = 'Pago';
-                        statusClass = 'paid';
-                    } else if (dueDateObj) { // Only calculate status if date is valid and bill is unpaid
-                        const daysDiff = daysBetween(dueDateObj, todayUTCStart); // Compare UTC dates
-
+                    if (conta.isPaid) { statusText = 'Pago'; statusClass = 'paid';
+                    } else if (dueDateObj) {
+                        const daysDiff = daysBetween(dueDateObj, todayUTCStart);
                         if (daysDiff < 0) { statusText = `Vencido há ${Math.abs(daysDiff)} dia(s)`; statusClass = 'overdue'; dueDateTextClass = 'overdue-text'; }
                         else if (daysDiff === 0) { statusText = 'Vence Hoje!'; statusClass = 'due-soon'; dueDateTextClass = 'due-soon-text'; }
                         else if (daysDiff <= 3) { statusText = `Vence em ${daysDiff} dia(s)`; statusClass = 'due-soon'; dueDateTextClass = 'due-soon-text'; }
                         else { statusText = `Vence em ${daysDiff} dia(s)`; }
-                    } else {
-                        // Handle invalid date for unpaid bills
-                        statusText = 'Data Inválida';
-                        statusClass = 'overdue'; // Mark as problematic visually
-                    }
-
+                    } else { statusText = 'Data Inválida'; statusClass = 'overdue'; }
                     tr.className = statusClass;
                     tr.innerHTML = `
-                        <td>${escapeHtml(conta.description)}</td>
-                        <td class="amount">${formatCurrency(conta.amount)}</td>
-                        <td class="due-date ${dueDateTextClass}">${formatDate(conta.dueDate)}</td>
-                        <td>${statusText}</td>
+                        <td>${escapeHtml(conta.description)}</td><td class="amount">${formatCurrency(conta.amount)}</td>
+                        <td class="due-date ${dueDateTextClass}">${formatDate(conta.dueDate)}</td><td>${statusText}</td>
                         <td class="actions">
                             ${!conta.isPaid ? `<button class="mark-paid-btn" data-id="${conta.id}" title="Marcar como Pago">✔️</button>` : ''}
                             <button class="delete-conta-btn" data-id="${conta.id}" title="Excluir Conta">🗑️</button>
                         </td>`;
                     contasTbody.appendChild(tr);
                 });
-
-                // Add listeners AFTER table is in DOM
                 contasTbody.querySelectorAll('.mark-paid-btn').forEach(btn => { btn.removeEventListener('click', handleMarkAsPaidClick); btn.addEventListener('click', handleMarkAsPaidClick); });
                 contasTbody.querySelectorAll('.delete-conta-btn').forEach(btn => { btn.removeEventListener('click', handleDeleteContaClick); btn.addEventListener('click', handleDeleteContaClick); });
             };
 
+            // Pessoas Devendo: Tabela
+            const renderPessoasDevendo = () => {
+                if (!pessoasDevendoTbody || !noPessoasDevendoMessage) return;
+                pessoasDevendoTbody.innerHTML = '';
+                noPessoasDevendoMessage.style.display = 'none';
+
+                const sortedDebtors = [...pessoasDevendo].sort((a, b) => {
+                    if (a.isPaid !== b.isPaid) return a.isPaid ? 1 : -1;
+                    const dateA = isValidDateString(a.loanDate) ? new Date(a.loanDate + 'T00:00:00Z').getTime() : 0;
+                    const dateB = isValidDateString(b.loanDate) ? new Date(b.loanDate + 'T00:00:00Z').getTime() : 0;
+                    return dateB - dateA;
+                });
+
+                if (sortedDebtors.length === 0) {
+                    noPessoasDevendoMessage.style.display = 'block';
+                    return;
+                }
+
+                sortedDebtors.forEach(debtor => {
+                    if (typeof debtor.amount !== 'number' || isNaN(debtor.amount)) return;
+                    const tr = document.createElement('tr');
+                    let statusText = 'Pendente';
+                    let rowClass = 'overdue';
+                    if (debtor.isPaid) { statusText = 'Recebido'; rowClass = 'paid'; }
+
+                    tr.className = rowClass;
+                    tr.innerHTML = `
+                        <td>${escapeHtml(debtor.name)}</td>
+                        <td class="amount">${formatCurrency(debtor.amount)}</td>
+                        <td>${formatDate(debtor.loanDate)}</td>
+                        <td>${statusText}</td>
+                        <td class="actions">
+                            ${!debtor.isPaid ? `<button class="mark-received-btn" data-id="${debtor.id}" title="Marcar como Recebido">✔️</button>` : ''}
+                            <button class="delete-debtor-btn" data-id="${debtor.id}" title="Excluir Registro">🗑️</button>
+                        </td>`;
+                    pessoasDevendoTbody.appendChild(tr);
+                });
+
+                pessoasDevendoTbody.querySelectorAll('.mark-received-btn').forEach(btn => { btn.removeEventListener('click', handleMarkAsReceivedClick); btn.addEventListener('click', handleMarkAsReceivedClick); });
+                pessoasDevendoTbody.querySelectorAll('.delete-debtor-btn').forEach(btn => { btn.removeEventListener('click', handleDeleteDebtorClick); btn.addEventListener('click', handleDeleteDebtorClick); });
+            };
+
             // --- Funções de Renderização de Gráficos ---
-
-            // Dashboard: Gráfico Diário
             const renderOrUpdateDashboardChart = () => {
-                // Only render if the dashboard section is active and the canvas exists
-                if (!historyChartCanvas || !contentSections.dashboard?.classList.contains('active')) {
-                     return;
-                }
-                const ctx = historyChartCanvas.getContext('2d');
-                if (!ctx) { console.error("Failed to get 2D context for historyChartCanvas"); return; }
-
-                const chartData = prepareDashboardChartData(30); // Get data for the last 30 days
-
-                // Destroy previous instance if it exists
-                if (historyChartInstance) {
-                    try { historyChartInstance.destroy(); } catch(e){ console.error("Error destroying old dashboard chart:", e); }
-                    historyChartInstance = null;
-                }
-
-                // Create new chart instance
+                if (!historyChartCanvas || !contentSections.dashboard?.classList.contains('active')) { return; }
+                const ctx = historyChartCanvas.getContext('2d'); if (!ctx) return;
+                const chartData = prepareDashboardChartData(30);
+                if (historyChartInstance) { try { historyChartInstance.destroy(); } catch(e){ console.error(e); } historyChartInstance = null; }
                  try {
                     historyChartInstance = new Chart(ctx, {
                         type: 'line',
-                        data: {
-                            labels: chartData.labels,
-                            datasets: [{
-                                label: 'Saldo Diário', data: chartData.data,
-                                borderColor: '#58a6ff', backgroundColor: 'rgba(88, 166, 255, 0.2)',
-                                tension: 0.2, fill: true, pointBackgroundColor: '#58a6ff',
-                                pointBorderColor: '#1e1e1e', pointHoverRadius: 7,
-                                pointHoverBackgroundColor: '#ffffff', pointHoverBorderColor: '#58a6ff',
-                                pointRadius: 3,
-                            }]
-                        },
-                        options: {
-                            responsive: true, maintainAspectRatio: false,
-                            scales: { y: { grid: { drawBorder: false, color: 'rgba(255, 255, 255, 0.1)', }, ticks: { color: '#a0a0a0', beginAtZero: false, callback: (value) => formatCurrency(value).replace("R$\u00A0","") } }, x: { grid: { display: false, }, ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } } },
-                            plugins: { legend: { display: false }, tooltip: { backgroundColor: '#121212', titleColor: '#ffffff', bodyColor: '#e0e0e0', titleFont: { weight: 'bold' }, bodyFont: { size: 14 }, displayColors: false, borderColor: '#555', borderWidth: 1, padding: 10, callbacks: { title: (tooltipItems) => tooltipItems[0].label, label: (context) => `Saldo: ${formatCurrency(context.parsed.y)}` } } },
-                            interaction: { mode: 'index', intersect: false },
-                        }
+                        data: { labels: chartData.labels, datasets: [{ label: 'Saldo Diário', data: chartData.data, borderColor: '#58a6ff', backgroundColor: 'rgba(88, 166, 255, 0.2)', tension: 0.2, fill: true, pointBackgroundColor: '#58a6ff', pointBorderColor: '#1e1e1e', pointHoverRadius: 7, pointHoverBackgroundColor: '#ffffff', pointHoverBorderColor: '#58a6ff', pointRadius: 3 }] },
+                        options: { responsive: true, maintainAspectRatio: false, scales: { y: { grid: { drawBorder: false, color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#a0a0a0', beginAtZero: false, callback: (value) => formatCurrency(value).replace("R$\u00A0","") } }, x: { grid: { display: false }, ticks: { color: '#a0a0a0', maxRotation: 0, autoSkip: true, maxTicksLimit: 6 } } }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#121212', titleColor: '#ffffff', bodyColor: '#e0e0e0', titleFont: { weight: 'bold' }, bodyFont: { size: 14 }, displayColors: false, borderColor: '#555', borderWidth: 1, padding: 10, callbacks: { title: (tooltipItems) => tooltipItems[0].label, label: (context) => `Saldo: ${formatCurrency(context.parsed.y)}` } } }, interaction: { mode: 'index', intersect: false } }
                     });
-                } catch (e) {
-                    console.error("Error creating dashboard chart:", e);
-                     showToast("Erro ao gerar gráfico do dashboard.");
-                }
+                } catch (e) { console.error("Error creating chart:", e); }
             };
-            // Prepares data for the dashboard daily balance chart
             const prepareDashboardChartData = (days = 30) => {
-                const balancesPerDay = {}; // Stores the *last* balance for each day YYYY-MM-DD
-                const labels = []; // DD/MM labels
-                const data = [];   // Corresponding balances
-
-                // Define date range using UTC dates for consistency
-                const endDate = new Date(); // Today
-                const startDate = new Date();
-                startDate.setUTCDate(endDate.getUTCDate() - days + 1); // Go back 'days' days
-
-                // Create UTC start/end points for filtering
+                const balancesPerDay = {}; const labels = []; const data = [];
+                const endDate = new Date(); const startDate = new Date();
+                startDate.setUTCDate(endDate.getUTCDate() - days + 1);
                 const endDateTime = Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate(), 23, 59, 59, 999);
                 const startDateTime = Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate(), 0, 0, 0, 0);
-
-                // Calculate starting balance (sum of transactions *before* the start date)
                 let startingBalance = 0;
                 transactions.forEach(tx => {
                     if (typeof tx.amount !== 'number' || isNaN(tx.amount) || !isValidDateString(tx.date)) return;
                     const txTime = new Date(tx.date + 'T00:00:00Z').getTime();
-                    if (txTime < startDateTime) {
-                        startingBalance += (tx.type === 'income' ? tx.amount : -tx.amount);
-                    }
+                    if (txTime < startDateTime) { startingBalance += (tx.type === 'income' ? tx.amount : -tx.amount); }
                 });
-
-                // Calculate balances for each day within the range
                 let runningBalance = startingBalance;
-                // Filter and sort transactions within the date range
-                const sortedTxForPeriod = [...transactions]
-                    .filter(tx => {
-                        if (!isValidDateString(tx.date) || typeof tx.amount !== 'number' || isNaN(tx.amount)) return false;
-                        const txTime = new Date(tx.date + 'T00:00:00Z').getTime();
-                        return txTime >= startDateTime && txTime <= endDateTime;
-                    })
-                    .sort((a, b) => {
-                        const timeA = new Date(a.date + 'T00:00:00Z').getTime();
-                        const timeB = new Date(b.date + 'T00:00:00Z').getTime();
-                        if (timeA === timeB) return (a.id || 0) - (b.id || 0); // Stable sort by ID
-                        return timeA - timeB;
-                    });
-
-                // Process transactions within the period to update daily balances
-                sortedTxForPeriod.forEach(tx => {
-                    runningBalance += (tx.type === 'income' ? tx.amount : -tx.amount);
-                    const dayKey = tx.date; // YYYY-MM-DD
-                    balancesPerDay[dayKey] = runningBalance; // Overwrite with the latest balance for that day
-                });
-
-                // Generate labels and data points for each day in the range
+                const sortedTxForPeriod = [...transactions].filter(tx => { if (!isValidDateString(tx.date) || typeof tx.amount !== 'number' || isNaN(tx.amount)) return false; const txTime = new Date(tx.date + 'T00:00:00Z').getTime(); return txTime >= startDateTime && txTime <= endDateTime; }).sort((a, b) => { const timeA = new Date(a.date + 'T00:00:00Z').getTime(); const timeB = new Date(b.date + 'T00:00:00Z').getTime(); if (timeA === timeB) return (a.id || 0) - (b.id || 0); return timeA - timeB; });
+                sortedTxForPeriod.forEach(tx => { runningBalance += (tx.type === 'income' ? tx.amount : -tx.amount); balancesPerDay[tx.date] = runningBalance; });
                 let lastKnownBalance = startingBalance;
                 for (let d = new Date(startDate); d.getTime() <= endDate.getTime(); d.setUTCDate(d.getUTCDate() + 1)) {
-                    const dayKey = d.toISOString().split('T')[0]; // YYYY-MM-DD
-                    const formattedLabel = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }); // Use UTC for label consistency
+                    const dayKey = d.toISOString().split('T')[0];
+                    const formattedLabel = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
                     labels.push(formattedLabel);
-                    // Use the balance recorded for that day, or carry over the last known balance
                     lastKnownBalance = balancesPerDay[dayKey] ?? lastKnownBalance;
                     data.push(lastKnownBalance);
                 }
-
-                 // Fallback: If no labels/data generated (e.g., no transactions at all), show starting balance for today
-                if (labels.length === 0) {
-                     const todayLabel = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
-                     labels.push(todayLabel);
-                     data.push(startingBalance); // Show the balance before the (empty) period
-                }
-
+                if (labels.length === 0) { const todayLabel = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }); labels.push(todayLabel); data.push(startingBalance); }
                 return { labels, data };
             };
-
-            // Relatório: Renderiza todos os gráficos da seção
             const renderReportSectionCharts = () => {
-                 // Only render if the report section is active
-                 if (!contentSections.relatorio?.classList.contains('active')) {
-                     return;
-                 }
-                 // Ensure all required elements exist
-                 if (!topExpensesChartCanvas || !netWorthChartCanvas || !reportCurrentMonthEl || !reportCurrentMonthIncomeEl || !reportCurrentMonthExpenseEl || !noExpensesMessageEl || !noHistoryMessageEl) {
-                     console.error("Report section elements missing. Cannot render charts.");
-                     return;
-                 }
-
-                 const today = new Date();
-                 const currentMonth = today.getUTCMonth(); // 0-indexed
-                 const currentYear = today.getUTCFullYear();
-                 const currentMonthYearStr = today.toISOString().substring(0, 7); // YYYY-MM
-
-                 // Update Month Title
+                 if (!contentSections.relatorio?.classList.contains('active')) { return; }
+                 if (!topExpensesChartCanvas || !netWorthChartCanvas || !reportCurrentMonthEl || !reportCurrentMonthIncomeEl || !reportCurrentMonthExpenseEl || !noExpensesMessageEl || !noHistoryMessageEl) { return; }
+                 const today = new Date(); const currentMonth = today.getUTCMonth(); const currentYear = today.getUTCFullYear();
+                 const currentMonthYearStr = today.toISOString().substring(0, 7);
                  reportCurrentMonthEl.textContent = `${monthNamesFullPtBr[currentMonth]} ${currentYear}`;
-
-                 // Filter transactions for the current month
                  const currentMonthTransactions = transactions.filter(tx => tx.date?.startsWith(currentMonthYearStr));
-
-                 // Calculate and display Income vs Expense for the month
                  let monthIncome = 0, monthExpense = 0;
-                 currentMonthTransactions.forEach(tx => {
-                     if (typeof tx.amount !== 'number' || isNaN(tx.amount)) return;
-                     if (tx.type === 'income') monthIncome += tx.amount;
-                     else if (tx.type === 'expense') monthExpense += tx.amount;
-                 });
+                 currentMonthTransactions.forEach(tx => { if (typeof tx.amount !== 'number' || isNaN(tx.amount)) return; if (tx.type === 'income') monthIncome += tx.amount; else if (tx.type === 'expense') monthExpense += tx.amount; });
                  reportCurrentMonthIncomeEl.textContent = formatCurrency(monthIncome);
                  reportCurrentMonthExpenseEl.textContent = formatCurrency(monthExpense);
-
-                 // Render Top Expenses Doughnut Chart
                  renderTopExpensesChart(currentMonthTransactions);
-
-                 // Render Net Worth Line Chart (using all transactions)
                  renderNetWorthChart();
             };
-            // Relatório: Gráfico Top Despesas (Doughnut)
             const renderTopExpensesChart = (monthTransactions) => {
                  if (!topExpensesChartCanvas || !noExpensesMessageEl) return;
-                 const ctx = topExpensesChartCanvas.getContext('2d');
-                 if (!ctx) { console.error("Failed to get context for topExpensesChartCanvas"); return; }
-
-                 // Aggregate expenses by description (case-insensitive)
+                 const ctx = topExpensesChartCanvas.getContext('2d'); if (!ctx) return;
                  const expensesByCategory = {};
-                 monthTransactions
-                    .filter(tx => tx.type === 'expense' && typeof tx.amount === 'number' && tx.amount > 0)
-                    .forEach(tx => {
-                         const category = (tx.description || 'Sem Descrição').trim().toLowerCase();
-                         expensesByCategory[category] = (expensesByCategory[category] || 0) + tx.amount;
-                 });
-
-                 // Sort categories by amount (descending)
+                 monthTransactions.filter(tx => tx.type === 'expense' && typeof tx.amount === 'number' && tx.amount > 0).forEach(tx => { const category = (tx.description || 'Sem Descrição').trim().toLowerCase(); expensesByCategory[category] = (expensesByCategory[category] || 0) + tx.amount; });
                  const sortedExpenses = Object.entries(expensesByCategory).sort(([, a], [, b]) => b - a);
-
-                 // Destroy previous instance
-                 if (topExpensesChartInstance) {
-                     try { topExpensesChartInstance.destroy(); } catch(e){ console.error("Error destroying old top expenses chart:", e); }
-                     topExpensesChartInstance = null;
-                 }
-
-                 if (sortedExpenses.length === 0) {
-                     // Show message if no expenses
-                     topExpensesChartCanvas.style.display = 'none';
-                     noExpensesMessageEl.style.display = 'block';
-                 } else {
-                     // Prepare data for top 3 + "Outros"
-                     topExpensesChartCanvas.style.display = 'block';
-                     noExpensesMessageEl.style.display = 'none';
+                 if (topExpensesChartInstance) { try { topExpensesChartInstance.destroy(); } catch(e){ console.error(e); } topExpensesChartInstance = null; }
+                 if (sortedExpenses.length === 0) { topExpensesChartCanvas.style.display = 'none'; noExpensesMessageEl.style.display = 'block'; }
+                 else {
+                     topExpensesChartCanvas.style.display = 'block'; noExpensesMessageEl.style.display = 'none';
                      let topLabels = []; let topData = []; let otherExpensesTotal = 0;
-                     sortedExpenses.forEach(([category, amount], index) => {
-                         if (index < 3) {
-                             // Capitalize first letter for display
-                             topLabels.push(category.charAt(0).toUpperCase() + category.slice(1));
-                             topData.push(amount);
-                         } else { otherExpensesTotal += amount; }
-                     });
+                     sortedExpenses.forEach(([category, amount], index) => { if (index < 3) { topLabels.push(category.charAt(0).toUpperCase() + category.slice(1)); topData.push(amount); } else { otherExpensesTotal += amount; } });
                      if (otherExpensesTotal > 0) { topLabels.push("Outros"); topData.push(otherExpensesTotal); }
-
                      const backgroundColors = ['rgba(248, 81, 73, 0.7)', 'rgba(243, 156, 18, 0.7)', 'rgba(231, 76, 60, 0.7)', 'rgba(155, 89, 182, 0.7)'];
                      const borderColors = ['rgba(248, 81, 73, 1)', 'rgba(243, 156, 18, 1)', 'rgba(231, 76, 60, 1)', 'rgba(155, 89, 182, 1)'];
-
-                     // Create new chart instance
                      try {
-                         topExpensesChartInstance = new Chart(ctx, {
-                             type: 'doughnut',
-                             data: {
-                                 labels: topLabels,
-                                 datasets: [{
-                                     label: 'Top Despesas', data: topData,
-                                     backgroundColor: backgroundColors.slice(0, topData.length),
-                                     borderColor: borderColors.slice(0, topData.length),
-                                     borderWidth: 1, hoverOffset: 4
-                                 }]
-                             },
-                             options: {
-                                 responsive: true, maintainAspectRatio: false, cutout: '60%',
-                                 plugins: {
-                                     legend: { position: 'bottom', labels: { color: '#a0a0a0', boxWidth: 12, padding: 15 } },
-                                     tooltip: { callbacks: { label: (c) => `${c.label || ''}: ${formatCurrency(c.parsed)}` } }
-                                 }
-                             }
-                         });
-                     } catch (e) {
-                         console.error("Error creating top expenses chart:", e);
-                         topExpensesChartCanvas.style.display = 'none';
-                         noExpensesMessageEl.textContent = "Erro ao gerar gráfico."; noExpensesMessageEl.style.display = 'block';
-                         showToast("Erro ao gerar gráfico de despesas.");
-                     }
+                         topExpensesChartInstance = new Chart(ctx, { type: 'doughnut', data: { labels: topLabels, datasets: [{ label: 'Top Despesas', data: topData, backgroundColor: backgroundColors.slice(0, topData.length), borderColor: borderColors.slice(0, topData.length), borderWidth: 1, hoverOffset: 4 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { color: '#a0a0a0', boxWidth: 12, padding: 15 } }, tooltip: { callbacks: { label: (c) => `${c.label || ''}: ${formatCurrency(c.parsed)}` } } } } });
+                     } catch (e) { console.error(e); topExpensesChartCanvas.style.display = 'none'; noExpensesMessageEl.style.display = 'block'; showToast("Erro ao gerar gráfico."); }
                  }
             };
-            // Relatório: Gráfico Evolução do Patrimônio (Line)
             const renderNetWorthChart = () => {
                  if (!netWorthChartCanvas || !noHistoryMessageEl) return;
-                 const ctx = netWorthChartCanvas.getContext('2d');
-                 if (!ctx) { console.error("Failed to get context for netWorthChartCanvas"); return; }
-
-                 const { evolutionData } = calculateRunningBalances(); // Get { date: 'YYYY-MM-DD', balance: number } points
-
-                // Destroy previous instance
-                if (netWorthChartInstance) {
-                    try { netWorthChartInstance.destroy(); } catch (e) { console.error("Error destroying old net worth chart:", e); }
-                    netWorthChartInstance = null;
-                }
-
-                 // Aggregate balances by month to simplify the chart
+                 const ctx = netWorthChartCanvas.getContext('2d'); if (!ctx) return;
+                 const { evolutionData } = calculateRunningBalances();
+                if (netWorthChartInstance) { try { netWorthChartInstance.destroy(); } catch (e) { console.error(e); } netWorthChartInstance = null; }
                  const monthlyBalances = {};
-                 evolutionData.forEach(point => {
-                     if (isValidDateString(point.date)) {
-                         const monthKey = point.date.substring(0, 7); // YYYY-MM
-                         monthlyBalances[monthKey] = point.balance; // Store the *last* balance recorded for that month
-                     }
-                 });
-
-                 const sortedMonths = Object.keys(monthlyBalances).sort(); // Sort months chronologically
-
-                 if (sortedMonths.length < 2) { // Need at least two data points for a line chart
-                     netWorthChartCanvas.style.display = 'none';
-                     noHistoryMessageEl.style.display = 'block';
-                 } else {
-                     netWorthChartCanvas.style.display = 'block';
-                     noHistoryMessageEl.style.display = 'none';
-
-                     // Prepare labels (MMM/YY) and data for the chart
-                     const evolutionLabels = sortedMonths.map(monthKey => {
-                         const [year, month] = monthKey.split('-');
-                         return `${monthNamesPtBr[parseInt(month) - 1]}/${year.substring(2)}`; // Format as Jan/23 etc.
-                     });
+                 evolutionData.forEach(point => { if (isValidDateString(point.date)) { monthlyBalances[point.date.substring(0, 7)] = point.balance; } });
+                 const sortedMonths = Object.keys(monthlyBalances).sort();
+                 if (sortedMonths.length < 2) { netWorthChartCanvas.style.display = 'none'; noHistoryMessageEl.style.display = 'block'; }
+                 else {
+                     netWorthChartCanvas.style.display = 'block'; noHistoryMessageEl.style.display = 'none';
+                     const evolutionLabels = sortedMonths.map(monthKey => { const [year, month] = monthKey.split('-'); return `${monthNamesPtBr[parseInt(month) - 1]}/${year.substring(2)}`; });
                      const evolutionChartData = sortedMonths.map(monthKey => monthlyBalances[monthKey]);
-
-                     // Create new chart instance
                      try {
-                         netWorthChartInstance = new Chart(ctx, {
-                             type: 'line',
-                             data: {
-                                 labels: evolutionLabels,
-                                 datasets: [{
-                                     label: 'Patrimônio', data: evolutionChartData,
-                                     borderColor: '#58a6ff', backgroundColor: 'rgba(88, 166, 255, 0.1)',
-                                     tension: 0.1, fill: true, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#58a6ff'
-                                 }]
-                             },
-                             options: {
-                                 responsive: true, maintainAspectRatio: false,
-                                 scales: {
-                                     y: { beginAtZero: false, ticks: { color: '#a0a0a0', callback: (v) => formatCurrency(v) }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-                                     x: { ticks: { color: '#a0a0a0', maxRotation: 45, minRotation: 0 }, grid: { display: false } }
-                                 },
-                                 plugins: { legend: { display: false }, tooltip: { backgroundColor: '#121212', titleColor: '#ffffff', bodyColor: '#e0e0e0', borderColor: '#555', borderWidth: 1, padding: 10, displayColors: false, callbacks: { title: (ti) => ti[0].label, label: (c) => `Patrimônio: ${formatCurrency(c.parsed.y)}` } } },
-                                 interaction: { mode: 'index', intersect: false },
-                             }
-                         });
-                     } catch(e) {
-                         console.error("Error creating net worth chart:", e);
-                         netWorthChartCanvas.style.display = 'none';
-                         noHistoryMessageEl.textContent = "Erro ao gerar gráfico."; noHistoryMessageEl.style.display = 'block';
-                         showToast("Erro ao gerar gráfico de evolução.");
-                     }
+                         netWorthChartInstance = new Chart(ctx, { type: 'line', data: { labels: evolutionLabels, datasets: [{ label: 'Patrimônio', data: evolutionChartData, borderColor: '#58a6ff', backgroundColor: 'rgba(88, 166, 255, 0.1)', tension: 0.1, fill: true, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#58a6ff' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false, ticks: { color: '#a0a0a0', callback: (v) => formatCurrency(v) }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, x: { ticks: { color: '#a0a0a0', maxRotation: 45, minRotation: 0 }, grid: { display: false } } }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#121212', titleColor: '#ffffff', bodyColor: '#e0e0e0', borderColor: '#555', borderWidth: 1, padding: 10, displayColors: false, callbacks: { title: (ti) => ti[0].label, label: (c) => `Patrimônio: ${formatCurrency(c.parsed.y)}` } } }, interaction: { mode: 'index', intersect: false } } });
+                     } catch(e) { console.error(e); netWorthChartCanvas.style.display = 'none'; noHistoryMessageEl.style.display = 'block'; showToast("Erro ao gerar gráfico."); }
                  }
             };
-
+            
             // --- Handlers de Eventos ---
-
-            // Transações: Adicionar
-            const handleAddTransaction = (e) => {
-                e.preventDefault();
-                if (!transactionForm) return;
-                const dateInput = getElement('tx-date');
-                const descriptionInput = getElement('tx-description');
-                const amountInput = getElement('tx-amount');
-                const typeInput = transactionForm.querySelector('input[name="tx-type"]:checked');
-
-                // Validation
-                const amount = parseFloat(amountInput?.value);
-                if (!dateInput?.value || !descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !typeInput?.value) {
-                    showToast("Erro: Preencha todos os campos corretamente (valor deve ser > 0).", 4000);
-                    // Add visual feedback (e.g., red borders) here if desired
-                    return;
-                }
-
-                const newTransaction = {
-                    id: Date.now(), // Simple unique ID using timestamp
-                    date: dateInput.value,
-                    description: descriptionInput.value.trim(),
-                    amount: amount,
-                    type: typeInput.value
-                };
-                transactions.push(newTransaction);
-                saveData(STORAGE_KEYS.transactions, transactions);
-                renderAll(); // Update UI
-                closeModal('add-transaction-modal');
-                showToast('Movimentação adicionada!');
-            };
-            // Transações: Excluir
-            const handleDeleteTransaction = (e) => {
-                const button = e.target.closest('button'); if (!button) return;
-                const transactionId = parseInt(button.dataset.id);
-                if (isNaN(transactionId)) { console.error("Invalid transaction ID for deletion"); return; }
-
-                const txIndex = transactions.findIndex(tx => tx.id === transactionId);
-                if (txIndex === -1) { showToast("Erro: Movimentação não encontrada para exclusão."); return; }
-
-                // Confirmation Dialog
-                if (confirm(`Tem certeza que deseja excluir a movimentação "${escapeHtml(transactions[txIndex].description)}"?`)) {
-                    transactions.splice(txIndex, 1); // Remove from array
-                    saveData(STORAGE_KEYS.transactions, transactions);
-                    renderAll(); // Update UI
-                    showToast('Movimentação excluída.');
-                }
-            };
-
-            // Planejamento: Adicionar Item
-            const handleAddPlanItem = (e) => {
-                 e.preventDefault();
-                 if (!planItemForm) return;
-                 const descriptionInput = getElement('plan-description');
-                 const amountInput = getElement('plan-amount');
-                 const typeInput = planItemForm.querySelector('input[name="plan-type"]:checked');
-
-                 // Validation
-                 const amount = parseFloat(amountInput?.value);
-                 if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !typeInput?.value) {
-                    showToast("Erro: Preencha todos os campos do plano corretamente (valor > 0).", 4000); return;
-                 }
-
-                const newPlanItem = { id: Date.now(), description: descriptionInput.value.trim(), amount: amount, type: typeInput.value };
-                planningItems.push(newPlanItem);
-                saveData(STORAGE_KEYS.planning, planningItems);
-                renderPlanningAll(); // Update Planning UI
-                closeModal('add-plan-item-modal');
-                showToast('Item adicionado ao plano!');
-            };
-            // Planejamento: Excluir Item
-            const handleDeletePlanItem = (e) => {
-                 const button = e.target.closest('button'); if (!button) return;
-                 const itemId = parseInt(button.dataset.id); if (isNaN(itemId)) { console.error("Invalid plan item ID"); return; }
-
-                 const itemIndex = planningItems.findIndex(item => item.id === itemId);
-                 if (itemIndex === -1) { showToast("Erro: Item do plano não encontrado."); return; }
-
-                 // No confirmation needed for plan items? Add if desired.
-                 planningItems.splice(itemIndex, 1);
-                 saveData(STORAGE_KEYS.planning, planningItems);
-                 renderPlanningAll(); // Update Planning UI
-                 showToast('Item removido do plano.');
-            };
-            // Planejamento: Limpar Plano
-            const handleClearPlan = () => {
-                if (planningItems.length === 0) { showToast('O plano já está vazio.'); return; }
-                if (confirm('Tem certeza que deseja limpar todo o plano? Esta ação não pode ser desfeita.')) {
-                    planningItems = [];
-                    saveData(STORAGE_KEYS.planning, planningItems);
-                    renderPlanningAll(); // Update Planning UI
-                    showToast('Plano limpo.');
-                }
-            };
-
-            // Poupança/Objetivo: Adicionar/Definir
-            const handleAddGoal = (e) => {
-                e.preventDefault();
-                if (!addGoalForm) return;
-                const descriptionInput = getElement('goal-modal-description');
-                const amountInput = getElement('goal-modal-amount');
-                const deadlineInput = addGoalForm.querySelector('input[name="goal-deadline"]:checked');
-
-                // Validation
-                const targetAmount = parseFloat(amountInput?.value);
-                if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(targetAmount) || targetAmount <= 0 || !deadlineInput?.value) {
-                     showToast("Erro: Preencha todos os campos do objetivo corretamente (valor > 0).", 4000); return;
-                }
-
-                // Elite Check (Optional - Keep or remove as needed)
-                if (targetAmount > 50000) {
-                    if (eliteMessageDiv) eliteMessageDiv.style.display = 'block';
-                    if (amountInput) amountInput.style.borderColor = '#f39c12'; // Visual feedback
-                    showToast('Objetivos acima de R$ 50.000 requerem a versão Elite.', 4000); return;
-                } else {
-                     if (eliteMessageDiv) eliteMessageDiv.style.display = 'none';
-                     if (amountInput) amountInput.style.borderColor = ''; // Reset border
-                }
-
-                // Calculate start and estimated end dates
-                const startDate = new Date(); // Use local time for start date
-                const estimatedCompletionDate = new Date(startDate);
-                let monthsToAdd = 0;
-                if (deadlineInput.value === 'short') monthsToAdd = 6;
-                else if (deadlineInput.value === 'medium') monthsToAdd = 12;
-                else if (deadlineInput.value === 'long') monthsToAdd = 36;
-                estimatedCompletionDate.setMonth(startDate.getMonth() + monthsToAdd);
-
-                // Create new goal object
-                currentGoal = {
-                    id: Date.now(),
-                    description: descriptionInput.value.trim(),
-                    targetAmount: targetAmount,
-                    deadlineType: deadlineInput.value,
-                    startDate: startDate.toISOString().split('T')[0], // Store as YYYY-MM-DD
-                    estimatedCompletionDate: estimatedCompletionDate.toISOString().split('T')[0], // Store as YYYY-MM-DD
-                    squares: Array(100).fill(false) // Initialize 100 squares (can adjust if grid size changes)
-                };
-                saveData(STORAGE_KEYS.goal, currentGoal);
-                renderGoalSection(); // Update Goal UI
-                closeModal('add-goal-modal');
-                showToast('Objetivo definido com sucesso!');
-            };
-            // Poupança/Objetivo: Clicar no Quadrado
-            const handleSquareClick = (e) => {
-                if (!currentGoal || !currentGoal.squares || !Array.isArray(currentGoal.squares)) return;
-                const square = e.target.closest('.savings-square'); if (!square) return;
-                const index = parseInt(square.dataset.index);
-                if (isNaN(index) || index < 0 || index >= currentGoal.squares.length) {
-                    console.error("Invalid square index clicked:", index); return;
-                }
-
-                // Toggle the saved state for this square
-                currentGoal.squares[index] = !currentGoal.squares[index];
-                saveData(STORAGE_KEYS.goal, currentGoal);
-                renderGoalSection(); // Re-render progress and grid to reflect change
-
-                // Optional: Quick visual feedback on click
-                square.style.transform = 'scale(0.9)';
-                setTimeout(() => { if (square) square.style.transform = ''; }, 150);
-            };
-            // Poupança/Objetivo: Remover
-            const handleRemoveGoal = () => {
-                if (!currentGoal) { showToast("Nenhum objetivo ativo para remover."); return; }
-                if (confirm(`Tem certeza que deseja remover o objetivo "${escapeHtml(currentGoal.description)}"? Todo o progresso será perdido.`)) {
-                    currentGoal = null;
-                    saveData(STORAGE_KEYS.goal, currentGoal);
-                    renderGoalSection(); // Update Goal UI (will show 'no goal' message)
-                    showToast("Objetivo removido.");
-                }
-            };
-
-            // Contas a Pagar: Adicionar
-             const handleAddContaSubmit = (e) => {
-                e.preventDefault();
-                if (!addContaForm) return;
-                const descriptionInput = getElement('conta-description');
-                const amountInput = getElement('conta-amount');
-                const dueDateInput = getElement('conta-dueDate');
-
-                 // Validation
-                 const amount = parseFloat(amountInput?.value);
-                 const dueDate = dueDateInput?.value;
-                 if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !dueDate || !isValidDateString(dueDate)) {
-                    showToast('Erro: Preencha todos os campos da conta corretamente (data válida e valor > 0).', 4000); return;
-                 }
-
-                const newConta = {
-                    id: Date.now(),
-                    description: descriptionInput.value.trim(),
-                    amount: amount,
-                    dueDate: dueDate, // Store as YYYY-MM-DD
-                    isPaid: false
-                };
-                contasAPagar.push(newConta);
-                saveData(STORAGE_KEYS.bills, contasAPagar);
-                renderContasAPagar(); // Update Bills UI
-                closeModal('add-conta-modal');
-                showToast('Conta adicionada com sucesso!');
-            };
-            // Contas a Pagar: Marcar como Paga
-             const handleMarkAsPaidClick = (e) => {
-                const button = e.target.closest('button'); if (!button) return;
-                const contaId = parseInt(button.dataset.id); if (isNaN(contaId)) { console.error("Invalid bill ID"); return; }
-
-                const contaIndex = contasAPagar.findIndex(c => c.id === contaId);
-                if (contaIndex > -1) {
-                    contasAPagar[contaIndex].isPaid = true;
-                    saveData(STORAGE_KEYS.bills, contasAPagar);
-                    renderContasAPagar(); // Update Bills UI
-                    showToast(`Conta "${escapeHtml(contasAPagar[contaIndex].description)}" marcada como paga.`);
-                } else { showToast("Erro: Conta não encontrada para marcar como paga."); }
-             };
-            // Contas a Pagar: Excluir
-             const handleDeleteContaClick = (e) => {
-                const button = e.target.closest('button'); if (!button) return;
-                const contaId = parseInt(button.dataset.id); if (isNaN(contaId)) { console.error("Invalid bill ID"); return; }
-
-                const contaIndex = contasAPagar.findIndex(c => c.id === contaId);
-                 if (contaIndex > -1) {
-                     // Confirmation
-                     if (confirm(`Tem certeza que deseja excluir a conta "${escapeHtml(contasAPagar[contaIndex].description)}"?`)) {
-                        contasAPagar.splice(contaIndex, 1);
-                        saveData(STORAGE_KEYS.bills, contasAPagar);
-                        renderContasAPagar(); // Update Bills UI
-                        showToast('Conta excluída.');
-                    }
-                 } else { showToast("Erro: Conta não encontrada para excluir."); }
-             };
+            const handleDeleteTransaction = (e) => { const button = e.target.closest('button'); if (!button) return; const transactionId = parseInt(button.dataset.id); if (isNaN(transactionId)) return; const txIndex = transactions.findIndex(tx => tx.id === transactionId); if (txIndex === -1) { showToast("Erro: Movimentação não encontrada."); return; } if (confirm(`Tem certeza que deseja excluir "${escapeHtml(transactions[txIndex].description)}"?`)) { transactions.splice(txIndex, 1); saveData(STORAGE_KEYS.transactions, transactions); renderAll(); showToast('Movimentação excluída.'); } };
+            const handleAddTransaction = (e) => { e.preventDefault(); if (!transactionForm) return; const dateInput = getElement('tx-date'), descriptionInput = getElement('tx-description'), amountInput = getElement('tx-amount'); const typeInput = transactionForm.querySelector('input[name="tx-type"]:checked'); const amount = parseFloat(amountInput?.value); if (!dateInput?.value || !descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !typeInput?.value) { showToast("Erro: Preencha todos os campos corretamente.", 4000); return; } transactions.push({ id: Date.now(), date: dateInput.value, description: descriptionInput.value.trim(), amount: amount, type: typeInput.value }); saveData(STORAGE_KEYS.transactions, transactions); renderAll(); closeModal('add-transaction-modal'); showToast('Movimentação adicionada!'); };
+            const handleAddPlanItem = (e) => { e.preventDefault(); if (!planItemForm) return; const descriptionInput = getElement('plan-description'), amountInput = getElement('plan-amount'); const typeInput = planItemForm.querySelector('input[name="plan-type"]:checked'); const amount = parseFloat(amountInput?.value); if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !typeInput?.value) { showToast("Erro: Preencha todos os campos do plano corretamente.", 4000); return; } planningItems.push({ id: Date.now(), description: descriptionInput.value.trim(), amount: amount, type: typeInput.value }); saveData(STORAGE_KEYS.planning, planningItems); renderPlanningAll(); closeModal('add-plan-item-modal'); showToast('Item adicionado ao plano!'); };
+            const handleDeletePlanItem = (e) => { const button = e.target.closest('button'); if (!button) return; const itemId = parseInt(button.dataset.id); if (isNaN(itemId)) return; const itemIndex = planningItems.findIndex(item => item.id === itemId); if (itemIndex === -1) { showToast("Erro: Item do plano não encontrado."); return; } planningItems.splice(itemIndex, 1); saveData(STORAGE_KEYS.planning, planningItems); renderPlanningAll(); showToast('Item removido do plano.'); };
+            const handleClearPlan = () => { if (planningItems.length === 0) { showToast('O plano já está vazio.'); return; } if (confirm('Limpar todo o plano?')) { planningItems = []; saveData(STORAGE_KEYS.planning, planningItems); renderPlanningAll(); showToast('Plano limpo.'); } };
+            const handleAddGoal = (e) => { e.preventDefault(); if (!addGoalForm) return; const descriptionInput = getElement('goal-modal-description'), amountInput = getElement('goal-modal-amount'); const deadlineInput = addGoalForm.querySelector('input[name="goal-deadline"]:checked'); const targetAmount = parseFloat(amountInput?.value); if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(targetAmount) || targetAmount <= 0 || !deadlineInput?.value) { showToast("Erro: Preencha todos os campos do objetivo.", 4000); return; } if (targetAmount > 50000) { if (eliteMessageDiv) eliteMessageDiv.style.display = 'block'; if (amountInput) amountInput.style.borderColor = '#f39c12'; showToast('Objetivos > R$ 50.000 requerem versão Elite.', 4000); return; } else { if (eliteMessageDiv) eliteMessageDiv.style.display = 'none'; if (amountInput) amountInput.style.borderColor = ''; } const startDate = new Date(); const estimatedCompletionDate = new Date(startDate); let monthsToAdd = 0; if (deadlineInput.value === 'short') monthsToAdd = 6; else if (deadlineInput.value === 'medium') monthsToAdd = 12; else if (deadlineInput.value === 'long') monthsToAdd = 36; estimatedCompletionDate.setMonth(startDate.getMonth() + monthsToAdd); currentGoal = { id: Date.now(), description: descriptionInput.value.trim(), targetAmount: targetAmount, deadlineType: deadlineInput.value, startDate: startDate.toISOString().split('T')[0], estimatedCompletionDate: estimatedCompletionDate.toISOString().split('T')[0], squares: Array(100).fill(false) }; saveData(STORAGE_KEYS.goal, currentGoal); renderGoalSection(); closeModal('add-goal-modal'); showToast('Objetivo definido!'); };
+            const handleSquareClick = (e) => { if (!currentGoal || !currentGoal.squares || !Array.isArray(currentGoal.squares)) return; const square = e.target.closest('.savings-square'); if (!square) return; const index = parseInt(square.dataset.index); if (isNaN(index) || index < 0 || index >= currentGoal.squares.length) return; currentGoal.squares[index] = !currentGoal.squares[index]; saveData(STORAGE_KEYS.goal, currentGoal); renderGoalSection(); square.style.transform = 'scale(0.9)'; setTimeout(() => { if (square) square.style.transform = ''; }, 150); };
+            const handleRemoveGoal = () => { if (!currentGoal) { showToast("Nenhum objetivo ativo."); return; } if (confirm(`Remover objetivo "${escapeHtml(currentGoal.description)}"?`)) { currentGoal = null; saveData(STORAGE_KEYS.goal, currentGoal); renderGoalSection(); showToast("Objetivo removido."); } };
+            const handleAddContaSubmit = (e) => { e.preventDefault(); if (!addContaForm) return; const descriptionInput = getElement('conta-description'), amountInput = getElement('conta-amount'), dueDateInput = getElement('conta-dueDate'); const amount = parseFloat(amountInput?.value); const dueDate = dueDateInput?.value; if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !dueDate || !isValidDateString(dueDate)) { showToast('Erro: Preencha todos os campos da conta.', 4000); return; } contasAPagar.push({ id: Date.now(), description: descriptionInput.value.trim(), amount: amount, dueDate: dueDate, isPaid: false }); saveData(STORAGE_KEYS.bills, contasAPagar); renderContasAPagar(); closeModal('add-conta-modal'); showToast('Conta adicionada!'); };
+            const handleMarkAsPaidClick = (e) => { const button = e.target.closest('button'); if (!button) return; const contaId = parseInt(button.dataset.id); if (isNaN(contaId)) return; const contaIndex = contasAPagar.findIndex(c => c.id === contaId); if (contaIndex > -1) { contasAPagar[contaIndex].isPaid = true; saveData(STORAGE_KEYS.bills, contasAPagar); renderContasAPagar(); showToast(`Conta "${escapeHtml(contasAPagar[contaIndex].description)}" paga.`); } else { showToast("Erro: Conta não encontrada."); } };
+            const handleDeleteContaClick = (e) => { const button = e.target.closest('button'); if (!button) return; const contaId = parseInt(button.dataset.id); if (isNaN(contaId)) return; const contaIndex = contasAPagar.findIndex(c => c.id === contaId); if (contaIndex > -1) { if (confirm(`Excluir conta "${escapeHtml(contasAPagar[contaIndex].description)}"?`)) { contasAPagar.splice(contaIndex, 1); saveData(STORAGE_KEYS.bills, contasAPagar); renderContasAPagar(); showToast('Conta excluída.'); } } else { showToast("Erro: Conta não encontrada."); } };
+            const handleAddPessoaDevendoSubmit = (e) => { e.preventDefault(); if (!addPessoaDevendoForm) return; const nameInput = getElement('pessoa-devendo-nome'); const amountInput = getElement('pessoa-devendo-amount'); const dateInput = getElement('pessoa-devendo-date'); const descriptionInput = getElement('pessoa-devendo-description'); const amount = parseFloat(amountInput?.value); const loanDate = dateInput?.value; if (!nameInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !loanDate || !isValidDateString(loanDate)) { showToast('Erro: Preencha nome, valor e data do empréstimo corretamente.', 4000); return; } const newDebtor = { id: Date.now(), name: nameInput.value.trim(), amount: amount, loanDate: loanDate, description: descriptionInput?.value.trim() || '', isPaid: false }; pessoasDevendo.push(newDebtor); saveData(STORAGE_KEYS.debtors, pessoasDevendo); renderPessoasDevendo(); closeModal('add-pessoa-devendo-modal'); showToast('Devedor adicionado!'); };
+            const handleMarkAsReceivedClick = (e) => { const button = e.target.closest('button'); if (!button) return; const debtorId = parseInt(button.dataset.id); if (isNaN(debtorId)) return; const debtorIndex = pessoasDevendo.findIndex(d => d.id === debtorId); if (debtorIndex > -1) { pessoasDevendo[debtorIndex].isPaid = true; saveData(STORAGE_KEYS.debtors, pessoasDevendo); renderPessoasDevendo(); showToast(`Valor de ${escapeHtml(pessoasDevendo[debtorIndex].name)} recebido.`); } else { showToast("Erro: Devedor não encontrado."); } };
+            const handleDeleteDebtorClick = (e) => { const button = e.target.closest('button'); if (!button) return; const debtorId = parseInt(button.dataset.id); if (isNaN(debtorId)) return; const debtorIndex = pessoasDevendo.findIndex(d => d.id === debtorId); if (debtorIndex > -1) { if (confirm(`Excluir o registro de ${escapeHtml(pessoasDevendo[debtorIndex].name)}?`)) { pessoasDevendo.splice(debtorIndex, 1); saveData(STORAGE_KEYS.debtors, pessoasDevendo); renderPessoasDevendo(); showToast('Registro de devedor excluído.'); } } else { showToast("Erro: Devedor não encontrado."); } };
 
             // --- Manipulação de Modais ---
             const openModal = (modalId) => {
                 const modal = getElement(modalId); if (!modal) return;
-                const form = modal.querySelector('form');
-                if (form) form.reset(); // Reset form fields
-
-                // Reset specific styles and set defaults per modal
-                 try {
-                    // Clear any previous validation styles
+                const form = modal.querySelector('form'); if (form) form.reset();
+                try {
                     modal.querySelectorAll('input').forEach(i => i.style.borderColor = '');
-
-                    if (modalId === 'add-transaction-modal') {
-                        const dateInput = getElement('tx-date'); if (dateInput) dateInput.value = getTodayDateString();
-                        const expenseRadio = modal.querySelector('input[name="tx-type"][value="expense"]'); if(expenseRadio) expenseRadio.checked = true;
-                    } else if (modalId === 'add-plan-item-modal') {
-                        const expenseRadio = modal.querySelector('input[name="plan-type"][value="expense"]'); if(expenseRadio) expenseRadio.checked = true;
-                    } else if (modalId === 'add-goal-modal') {
-                        const shortRadio = modal.querySelector('input[name="goal-deadline"][value="short"]'); if(shortRadio) shortRadio.checked = true;
-                        if (eliteMessageDiv) eliteMessageDiv.style.display = 'none'; // Hide elite message on open
-                    } else if (modalId === 'add-conta-modal') {
-                         const dueDateInput = getElement('conta-dueDate');
-                         if (dueDateInput) {
-                            // Default due date to 1 month from today
-                            try {
-                                const today = new Date();
-                                today.setMonth(today.getMonth() + 1);
-                                dueDateInput.value = today.toISOString().split('T')[0];
-                             } catch(e){ // Fallback to today if date calculation fails
-                                console.error("Error setting default due date:", e);
-                                dueDateInput.value = getTodayDateString();
-                             }
-                         }
-                    }
-                } catch (resetError) { console.error(`Error resetting modal ${modalId}:`, resetError); }
-
-                // Display modal with animation
-                modal.style.animation = ''; // Clear previous animation
-                modal.style.display = 'flex';
-                void modal.offsetWidth; // Trigger reflow to restart animation
+                    let dateInputToSync = null;
+                    if (modalId === 'add-transaction-modal') { const dateInput = getElement('tx-date'); if (dateInput) { const buttonGroup = dateInput.previousElementSibling; const activeButton = buttonGroup ? buttonGroup.querySelector('.date-button.active') : null; if (activeButton && !isNaN(parseInt(activeButton.dataset.days))) { const days = parseInt(activeButton.dataset.days); const date = new Date(); date.setDate(date.getDate() + days); dateInput.value = date.toISOString().split('T')[0]; } else { dateInput.value = new Date().toISOString().split('T')[0]; } dateInputToSync = dateInput; } }
+                    else if (modalId === 'add-goal-modal') { if (eliteMessageDiv) eliteMessageDiv.style.display = 'none'; }
+                    else if (modalId === 'add-conta-modal') { const dueDateInput = getElement('conta-dueDate'); if (dueDateInput) { const buttonGroup = dueDateInput.previousElementSibling; const activeButton = buttonGroup ? buttonGroup.querySelector('.date-button.active') : null; if (activeButton && !isNaN(parseInt(activeButton.dataset.days))) { const days = parseInt(activeButton.dataset.days); const date = new Date(); date.setDate(date.getDate() + days); dueDateInput.value = date.toISOString().split('T')[0]; } else { const defaultDate = new Date(); defaultDate.setMonth(defaultDate.getMonth() + 1); dueDateInput.value = defaultDate.toISOString().split('T')[0]; } dateInputToSync = dueDateInput; } }
+                    else if (modalId === 'add-pessoa-devendo-modal') { const dateInput = getElement('pessoa-devendo-date'); if (dateInput) { const buttonGroup = dateInput.previousElementSibling; const activeButton = buttonGroup ? buttonGroup.querySelector('.date-button.active') : null; if (activeButton && !isNaN(parseInt(activeButton.dataset.days))) { const days = parseInt(activeButton.dataset.days); const date = new Date(); date.setDate(date.getDate() + days); dateInput.value = date.toISOString().split('T')[0]; } else { dateInput.value = new Date().toISOString().split('T')[0]; } dateInputToSync = dateInput; } const descriptionInput = getElement('pessoa-devendo-description'); if (descriptionInput) descriptionInput.value = ''; }
+                    if (dateInputToSync) { dateInputToSync.dispatchEvent(new Event('change')); }
+                } catch (resetError) { console.error(`Error in openModal for ${modalId}:`, resetError); }
+                modal.style.animation = ''; modal.style.display = 'flex'; void modal.offsetWidth;
                 modal.style.animation = 'modalFadeIn 0.4s ease forwards, modalSlideIn 0.5s cubic-bezier(0.25,0.8,0.25,1) forwards';
             };
             const closeModal = (modalId) => {
                 const modal = getElement(modalId); if (!modal) return;
-                // Animate out
                 modal.style.animation = 'modalFadeOut 0.4s ease forwards, modalSlideOut 0.4s cubic-bezier(0.6,-0.28,0.735,0.045) forwards';
-                // Hide after animation
-                setTimeout(() => {
-                    if (modal) {
-                         modal.style.display = 'none';
-                         modal.style.animation = ''; // Clear animation state
-                    }
-                }, 400); // Match animation duration
+                setTimeout(() => { if (modal) { modal.style.display = 'none'; modal.style.animation = ''; } }, 400);
             };
 
-            // --- Navegação ---
+            // --- Menu Mobile e Navegação ---
+            const toggleMenu = () => {
+                sidebar.classList.toggle('is-open');
+                menuOverlay.classList.toggle('is-active');
+            };
+
             const handleNavClick = (e) => {
                 e.preventDefault();
                 const link = e.target.closest('a.nav-link');
-                if (!link || link.classList.contains('active')) return; // Ignore clicks on active link or outside links
-
+                if (!link || link.classList.contains('active')) return;
                 const sectionKey = link.dataset.section;
                 const targetSection = contentSections[sectionKey];
-                if (!targetSection) { console.warn(`Content section for '${sectionKey}' not found.`); return; }
-
-                // Update navigation links appearance
+                if (!targetSection) return;
                 navLinks.forEach(navLink => navLink.classList.remove('active'));
                 link.classList.add('active');
-
-                // Switch content sections
-                Object.values(contentSections).forEach(section => { if (section) section.classList.remove('active'); }); // Remove active first
-
-                // Use timeout to ensure fade-out/in animation triggers correctly if styles rely on .active
+                Object.values(contentSections).forEach(section => { if (section) section.classList.remove('active'); });
                 setTimeout(() => {
-                    Object.values(contentSections).forEach(section => { if (section) section.style.display = 'none'; }); // Hide all first
-                    targetSection.style.display = 'block'; // Display target
-                    targetSection.classList.add('active'); // Add active class for animation
-
-                    // Trigger chart rendering ONLY for the newly active section if it has charts
+                    Object.values(contentSections).forEach(section => { if (section) section.style.display = 'none'; });
+                    targetSection.style.display = 'block'; targetSection.classList.add('active');
                     if (sectionKey === 'dashboard') renderOrUpdateDashboardChart();
                     else if (sectionKey === 'relatorio') renderReportSectionCharts();
-                }, 50); // Small delay for smooth transition
+                    
+                    if (window.innerWidth <= 800 && sidebar.classList.contains('is-open')) {
+                        toggleMenu(); // Fechar o menu após a navegação no mobile
+                    }
+                }, 50);
             };
 
             // --- Função Geral de Renderização ---
             const renderAll = () => {
-                // Render non-chart UI elements immediately
-                renderSummary();
-                renderMonthlyTables();
-                renderPlanningAll();
-                renderGoalSection();
-                renderContasAPagar();
-
-                // Trigger chart renders (they will check internally if their section is active)
-                renderOrUpdateDashboardChart();
-                renderReportSectionCharts();
+                renderSummary(); renderMonthlyTables(); renderPlanningAll();
+                renderGoalSection(); renderContasAPagar(); renderPessoasDevendo();
+                renderOrUpdateDashboardChart(); renderReportSectionCharts();
+            };
+            
+            const setupDateButtons = () => {
+                document.querySelectorAll('.date-buttons').forEach(buttonGroup => {
+                    const dateInput = buttonGroup.nextElementSibling;
+                    if (!dateInput || dateInput.tagName !== 'INPUT' || dateInput.type !== 'date') return;
+                    buttonGroup.querySelectorAll('.date-button').forEach(button => {
+                        button.addEventListener('click', () => {
+                            buttonGroup.querySelectorAll('.date-button').forEach(btn => btn.classList.remove('active'));
+                            button.classList.add('active');
+                            const days = parseInt(button.dataset.days);
+                            const date = new Date();
+                            if (!isNaN(days)) { date.setDate(date.getDate() + days); dateInput.value = date.toISOString().split('T')[0]; }
+                        });
+                    });
+                    dateInput.addEventListener('change', () => {
+                        const selectedDateStr = dateInput.value; if (!selectedDateStr) { buttonGroup.querySelectorAll('.date-button').forEach(btn => btn.classList.remove('active')); return; }
+                        let matchedButton = false;
+                        buttonGroup.querySelectorAll('.date-button').forEach(button => {
+                            const days = parseInt(button.dataset.days); if (isNaN(days)) return;
+                            const tempDate = new Date(); tempDate.setHours(0,0,0,0); tempDate.setDate(tempDate.getDate() + days);
+                            const buttonDateStr = tempDate.toISOString().split('T')[0];
+                            if (selectedDateStr === buttonDateStr) { if (!button.classList.contains('active')) { buttonGroup.querySelectorAll('.date-button').forEach(btn => btn.classList.remove('active')); button.classList.add('active'); } matchedButton = true; }
+                        });
+                        if (!matchedButton) { buttonGroup.querySelectorAll('.date-button').forEach(btn => btn.classList.remove('active')); }
+                    });
+                });
             };
 
             // --- Inicialização ---
             const initializeApp = () => {
-                console.log("Initializing Finance App v10.3 (Corrected)...");
-                loadData(); // Load data from localStorage
-
-                // Setup Initial State (Dashboard Active)
-                Object.values(contentSections).forEach(section => {
-                     if (section) { section.style.display = 'none'; section.classList.remove('active'); }
-                });
-                if (contentSections.dashboard) {
-                    contentSections.dashboard.style.display = 'block';
-                    contentSections.dashboard.classList.add('active');
-                } else { console.error("CRITICAL: Dashboard content section not found!"); }
-
+                console.log("Initializing Responsive Finance App v10.3...");
+                loadData();
+                Object.values(contentSections).forEach(section => { if (section) { section.style.display = 'none'; section.classList.remove('active'); } });
+                if (contentSections.dashboard) { contentSections.dashboard.style.display = 'block'; contentSections.dashboard.classList.add('active'); }
                 navLinks.forEach(l => l.classList.remove('active'));
-                const dashboardLink = document.querySelector('.nav-link[data-section="dashboard"]');
-                if (dashboardLink) dashboardLink.classList.add('active'); else console.error("CRITICAL: Dashboard nav link not found!");
-
-                // Initial Render of all components
+                const dashboardLink = document.querySelector('.nav-link[data-section="dashboard"]'); if (dashboardLink) dashboardLink.classList.add('active');
+                
+                setupDateButtons();
                 renderAll();
 
-                // Attach Event Listeners
+                // Listeners
+                if (menuToggleBtn) menuToggleBtn.addEventListener('click', toggleMenu);
+                if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
                 if (addTransactionBtn) addTransactionBtn.addEventListener('click', () => openModal('add-transaction-modal'));
                 if (transactionForm) transactionForm.addEventListener('submit', handleAddTransaction);
                 if (addPlanItemBtn) addPlanItemBtn.addEventListener('click', () => openModal('add-plan-item-modal'));
@@ -1798,64 +1332,15 @@
                 if (removeGoalBtn) removeGoalBtn.addEventListener('click', handleRemoveGoal);
                 if (addContaBtn) addContaBtn.addEventListener('click', () => openModal('add-conta-modal'));
                 if (addContaForm) addContaForm.addEventListener('submit', handleAddContaSubmit);
-
-                // Modal Close Button Listeners
-                document.querySelectorAll('.close-modal-btn').forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const modalId = e.target.dataset.modalId;
-                        if (modalId) closeModal(modalId);
-                    });
-                });
-                // Modal Background Click Listener
-                document.querySelectorAll('.modal').forEach(modal => {
-                    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal.id); }); // Close if click is on backdrop
-                });
-
-                // Navigation Listener
+                if (addPessoaDevendoBtn) addPessoaDevendoBtn.addEventListener('click', () => openModal('add-pessoa-devendo-modal'));
+                if (addPessoaDevendoForm) addPessoaDevendoForm.addEventListener('submit', handleAddPessoaDevendoSubmit);
+                document.querySelectorAll('.close-modal-btn').forEach(button => { button.addEventListener('click', (e) => { const modalId = e.target.dataset.modalId; if (modalId) closeModal(modalId); }); });
+                document.querySelectorAll('.modal').forEach(modal => { modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal.id); }); });
                 navLinks.forEach(link => link.addEventListener('click', handleNavClick));
-
-                // --- Mobile Sidebar Logic ---
-                const menuToggleBtn = document.querySelector('.menu-toggle-btn');
-                const sidebar = document.querySelector('.sidebar');
-                const body = document.body;
-
-                const closeSidebar = () => {
-                    if (sidebar) sidebar.classList.remove('open');
-                    if (body) body.classList.remove('sidebar-open');
-                };
-
-                if (menuToggleBtn && sidebar) {
-                    menuToggleBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        sidebar.classList.toggle('open');
-                        body.classList.toggle('sidebar-open');
-                    });
-                }
-
-                // Close sidebar when a nav link is clicked (for SPA navigation)
-                sidebar.querySelectorAll('.nav-link').forEach(link => {
-                    link.addEventListener('click', () => {
-                        if (sidebar.classList.contains('open')) {
-                            closeSidebar();
-                        }
-                    });
-                });
-
-                // Close sidebar when clicking on the overlay (the body itself when open)
-                body.addEventListener('click', (e) => {
-                    if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== menuToggleBtn) {
-                        closeSidebar();
-                    }
-                });
-
-
-                console.log("App Initialized Successfully.");
+                console.log("App Initialized.");
             };
-
-            // --- Iniciar a Aplicação ---
             initializeApp();
-
-        }); // End DOMContentLoaded
+        });
     </script>
 
 </body>
