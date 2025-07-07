@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciador Financeiro v10.5 - Corrigido e Otimizado</title> <!-- Versão Atualizada -->
+    <title>Gerenciador Financeiro v10.6 - Múltiplos Itens</title> <!-- Versão Atualizada -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -177,7 +177,7 @@
         @keyframes modalSlideIn { from { transform: translateY(-40px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
         @keyframes modalFadeOut { from { opacity: 1; } to { opacity: 0; } }
         @keyframes modalSlideOut { from { transform: translateY(0) scale(1); opacity: 1; } to { transform: translateY(40px) scale(0.95); opacity: 0; } }
-        .modal-content { background-color: #333333; color: #e0e0e0; margin: auto; padding: 35px 45px; border-radius: 15px; box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6); width: 90%; max-width: 500px; position: relative; border: 1px solid #555; }
+        .modal-content { background-color: #333333; color: #e0e0e0; margin: auto; padding: 35px 45px; border-radius: 15px; box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6); width: 90%; max-width: 550px; position: relative; border: 1px solid #555; }
         .close-modal-btn { color: #aaa; position: absolute; top: 18px; right: 25px; font-size: 28px; font-weight: bold; cursor: pointer; transition: color 0.2s ease, transform 0.2s ease; }
         .close-modal-btn:hover, .close-modal-btn:focus { color: #ffffff; transform: rotate(90deg); }
         .modal h2 { margin-bottom: 30px; text-align: center; color: #ffffff; font-size: 1.6em; font-weight: 600; }
@@ -204,6 +204,32 @@
         #add-pessoa-devendo-form button[type="submit"]:hover { background: linear-gradient(135deg, #27ae60, #229954); }
         .modal button[type="submit"] { color: white; padding: 14px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: 600; width: 100%; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease; margin-top: 15px; }
         .modal button[type="submit"]:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4); }
+
+        /* Estilos para o Modal de Devedor (Itens Múltiplos) */
+        #debt-items-container {
+            border: 1px solid #555; padding: 15px; border-radius: 8px; margin-bottom: 20px;
+            max-height: 200px; overflow-y: auto;
+        }
+        .debt-item { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .debt-item-description { flex-grow: 1; }
+        .debt-item-amount { width: 120px; }
+        .debt-item .modal-input { margin-bottom: 0; }
+        .remove-debt-item-btn {
+            background: #666; color: #e0e0e0; border: none; border-radius: 50%; width: 28px; height: 28px;
+            cursor: pointer; font-weight: bold; font-size: 1.2em; line-height: 1; padding-bottom: 2px;
+            transition: background-color 0.2s; flex-shrink: 0;
+        }
+        .remove-debt-item-btn:hover { background: #c0392b; }
+        .add-debt-item-btn {
+            background-color: transparent; border: 1px dashed #777; color: #a0a0a0;
+            padding: 8px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: 600;
+            transition: all 0.2s; margin-top: 5px;
+        }
+        .add-debt-item-btn:hover { background-color: #555; color: #fff; border-color: #888; }
+        #debtor-total-amount-display {
+            text-align: right; font-size: 1.2em; font-weight: bold; margin-top: -10px; margin-bottom: 20px;
+            color: #3fb950;
+        }
 
         /* --- Toast Notification --- */
         .toast-notification { position: fixed; bottom: 25px; right: 25px; background-color: #282828; color: #e0e0e0; padding: 14px 22px; border-radius: 8px; border-left: 4px solid #58a6ff; box-shadow: 0 6px 20px rgba(0,0,0,0.4); z-index: 1001; opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease; transform: translateX(20px); }
@@ -264,6 +290,7 @@
     </style>
 </head>
 <body>
+
     <!-- Menu Lateral -->
     <aside class="sidebar">
         <h2>Finance App</h2>
@@ -478,24 +505,13 @@
                     <th class="item-amount">Total</th>
                 </tr>
             </thead>
-            <tbody>
-                <tr>
-                    <td class="item-description" id="invoice-item-description">Descrição do item</td>
-                    <td class="item-amount" id="invoice-item-amount">R$ 0,00</td>
-                </tr>
+            <tbody id="invoice-items-body">
+                <!-- Itens serão inseridos aqui dinamicamente -->
             </tbody>
         </table>
         <div class="invoice-totals">
             <table>
                 <tbody>
-                    <tr>
-                        <td>Subtotal</td>
-                        <td id="invoice-subtotal">R$ 0,00</td>
-                    </tr>
-                    <tr>
-                        <td>Taxa (0%)</td>
-                        <td id="invoice-tax">R$ 0,00</td>
-                    </tr>
                     <tr class="total-row">
                         <td>TOTAL</td>
                         <td id="invoice-total">R$ 0,00</td>
@@ -620,24 +636,18 @@
                     <input type="text" id="pessoa-devendo-nome" placeholder="Ex: João Silva" required maxlength="100">
                 </div>
                 <div class="form-group">
-                    <label for="pessoa-devendo-amount">Valor Devido:</label>
-                    <input type="number" id="pessoa-devendo-amount" step="0.01" placeholder="0.00" required min="0.01">
-                </div>
-                <div class="form-group">
                     <label for="pessoa-devendo-date">Data do Empréstimo:</label>
-                    <div class="date-buttons">
-                        <button type="button" class="date-button yesterday" data-days="-1">Ontem</button>
-                        <button type="button" class="date-button today active" data-days="0">Hoje</button>
-                        <button type="button" class="date-button tomorrow" data-days="1">Amanhã</button>
-                        <button type="button" class="date-button other" data-days="7">+7 dias</button>
-                    </div>
                     <input type="date" id="pessoa-devendo-date" required>
-                    <small>(Data em que o dinheiro foi emprestado)</small>
                 </div>
-                <div class="form-group">
-                    <label for="pessoa-devendo-description">Descrição (Opcional):</label>
-                    <input type="text" id="pessoa-devendo-description" placeholder="Ex: Empréstimo para lanche" maxlength="200">
+
+                <label>Itens da Dívida:</label>
+                <div id="debt-items-container">
+                    <!-- Itens serão adicionados aqui via JS -->
                 </div>
+                <button type="button" id="add-debt-item-btn" class="add-debt-item-btn">+ Adicionar Item</button>
+                
+                <div id="debtor-total-amount-display">Total: R$ 0,00</div>
+
                 <button type="submit">Adicionar Devedor</button>
             </form>
         </div>
@@ -664,7 +674,7 @@
                 'futuros-gastos': getElement('futuros-gastos-content'),
                 'poupanca': getElement('poupanca-content'),
                 'contas-pagar': getElement('contas-pagar-content'),
-                'pessoas-devendo': getElement('pessoas-devendo-content'), // Nova seção
+                'pessoas-devendo': getElement('pessoas-devendo-content'),
                 'relatorio': getElement('relatorio-content'),
                 'objetivos': getElement('objetivos-content'),
             };
@@ -677,7 +687,7 @@
             const historyPlaceholder = getElement('history-placeholder');
             const historyChartCanvas = getElement('historyChart');
 
-            // Planejamento (Futuros Gastos)
+            // Planejamento
             const planBalanceEl = getElement('plan-balance');
             const planProfitPctEl = getElement('plan-profit-pct');
             const planExpensePctEl = getElement('plan-expense-pct');
@@ -688,7 +698,7 @@
             const noPlanningPlaceholder = getElement('no-planning-placeholder');
             const clearPlanBtn = getElement('clear-plan-btn');
 
-            // Poupança (Objetivo)
+            // Poupança
             const goalProgressBar = getElement('goal-progress-bar');
             const goalProgressPercent = getElement('goal-progress-percent');
             const goalTimeElapsed = getElement('goal-time-elapsed');
@@ -709,10 +719,13 @@
             const contasTbody = getElement('contas-tbody');
             const noContasMessage = getElement('no-contas-message');
 
-            // Pessoas Devendo (Nova seção)
+            // Pessoas Devendo
             const addPessoaDevendoBtn = getElement('add-pessoa-devendo-btn');
             const pessoasDevendoTbody = getElement('pessoas-devendo-tbody');
             const noPessoasDevendoMessage = getElement('no-pessoas-devendo-message');
+            const debtItemsContainer = getElement('debt-items-container');
+            const addDebtItemBtn = getElement('add-debt-item-btn');
+            const debtorTotalAmountDisplay = getElement('debtor-total-amount-display');
 
             // Relatório
             const reportCurrentMonthEl = getElement('report-current-month');
@@ -732,11 +745,11 @@
 
             // --- Constantes ---
             const STORAGE_KEYS = {
-                transactions: 'financeTransactions_v10.5',
-                planning: 'financePlanningItems_v10.5',
-                goal: 'financeCurrentGoal_v10.5',
-                bills: 'financeContasAPagar_v10.5',
-                debtors: 'financeDebtors_v10.5'
+                transactions: 'financeTransactions_v10.6',
+                planning: 'financePlanningItems_v10.6',
+                goal: 'financeCurrentGoal_v10.6',
+                bills: 'financeContasAPagar_v10.6',
+                debtors: 'financeDebtors_v10.6'
             };
             const monthNamesPtBr = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
             const monthNamesFullPtBr = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -1289,7 +1302,76 @@
                 } else { showToast("Erro: Conta não encontrada."); }
             };
             
-            const handleAddPessoaDevendoSubmit = (e) => { e.preventDefault(); const nameInput = getElement('pessoa-devendo-nome'); const amountInput = getElement('pessoa-devendo-amount'); const dateInput = getElement('pessoa-devendo-date'); const descriptionInput = getElement('pessoa-devendo-description'); const amount = parseFloat(amountInput?.value); const loanDate = dateInput?.value; if (!nameInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !loanDate || !isValidDateString(loanDate)) { showToast('Erro: Preencha nome, valor e data do empréstimo corretamente.', 4000); return; } const newDebtor = { id: Date.now(), name: nameInput.value.trim(), amount: amount, loanDate: loanDate, description: descriptionInput?.value.trim() || '', isPaid: false }; pessoasDevendo.push(newDebtor); saveData(STORAGE_KEYS.debtors, pessoasDevendo); renderPessoasDevendo(); closeModal('add-pessoa-devendo-modal'); showToast('Devedor adicionado!'); };
+            // Funções para Múltiplos Itens de Dívida
+            const createDebtItemElement = () => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'debt-item';
+                itemDiv.innerHTML = `
+                    <div class="debt-item-description">
+                        <input type="text" class="modal-input debt-item-description-input" placeholder="Descrição do item" required maxlength="100">
+                    </div>
+                    <div class="debt-item-amount">
+                        <input type="number" class="modal-input debt-item-amount-input" placeholder="0.00" required step="0.01" min="0.01">
+                    </div>
+                    <button type="button" class="remove-debt-item-btn" title="Remover item">&times;</button>
+                `;
+                return itemDiv;
+            };
+
+            const updateDebtorTotal = () => {
+                let total = 0;
+                debtItemsContainer.querySelectorAll('.debt-item-amount-input').forEach(input => {
+                    const value = parseFloat(input.value);
+                    if (!isNaN(value) && value > 0) {
+                        total += value;
+                    }
+                });
+                debtorTotalAmountDisplay.textContent = `Total: ${formatCurrency(total)}`;
+            };
+
+            const handleAddPessoaDevendoSubmit = (e) => {
+                e.preventDefault();
+                const nameInput = getElement('pessoa-devendo-nome');
+                const dateInput = getElement('pessoa-devendo-date');
+                if (!nameInput?.value.trim() || !dateInput?.value || !isValidDateString(dateInput.value)) {
+                    showToast('Erro: Preencha o nome do devedor e a data.', 4000);
+                    return;
+                }
+
+                const items = [];
+                let isValid = true;
+                debtItemsContainer.querySelectorAll('.debt-item').forEach(itemEl => {
+                    const description = itemEl.querySelector('.debt-item-description-input').value.trim();
+                    const amount = parseFloat(itemEl.querySelector('.debt-item-amount-input').value);
+                    if (description && !isNaN(amount) && amount > 0) {
+                        items.push({ description, amount });
+                    } else {
+                        isValid = false;
+                    }
+                });
+
+                if (!isValid || items.length === 0) {
+                    showToast('Erro: Preencha todos os itens da dívida corretamente (descrição e valor).', 4000);
+                    return;
+                }
+                
+                const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+
+                const newDebtor = {
+                    id: Date.now(),
+                    name: nameInput.value.trim(),
+                    loanDate: dateInput.value,
+                    items: items,
+                    amount: totalAmount, // Armazena o total para fácil acesso
+                    isPaid: false
+                };
+                
+                pessoasDevendo.push(newDebtor);
+                saveData(STORAGE_KEYS.debtors, pessoasDevendo);
+                renderPessoasDevendo();
+                closeModal('add-pessoa-devendo-modal');
+                showToast('Devedor adicionado!');
+            };
             const handleMarkAsReceivedClick = (button) => {
                 const debtorId = parseInt(button.dataset.id); if (isNaN(debtorId)) return;
                 const debtorIndex = pessoasDevendo.findIndex(d => d.id === debtorId);
@@ -1317,16 +1399,26 @@
                 const debtor = pessoasDevendo.find(d => d.id === debtorId);
                 if (!debtor) { showToast("Erro: Devedor não encontrado."); return; }
                 showToast("Gerando PDF...", 2000);
+                
+                // Preencher template
                 const invoiceTemplate = getElement('pdf-invoice-template');
                 getElement('invoice-status').textContent = debtor.isPaid ? 'Recebido' : 'Em Aberto';
                 getElement('invoice-status').className = debtor.isPaid ? 'status-paid' : 'status-unpaid';
                 getElement('invoice-number').textContent = `#INV-${debtor.id}`;
                 getElement('invoice-date-issued').textContent = formatDate(debtor.loanDate);
                 getElement('invoice-bill-to-name').textContent = escapeHtml(debtor.name);
-                getElement('invoice-item-description').textContent = escapeHtml(debtor.description) || 'Empréstimo';
-                getElement('invoice-item-amount').textContent = formatCurrency(debtor.amount);
-                getElement('invoice-subtotal').textContent = formatCurrency(debtor.amount);
-                getElement('invoice-tax').textContent = formatCurrency(0);
+                
+                const itemsBody = getElement('invoice-items-body');
+                itemsBody.innerHTML = ''; // Limpa itens anteriores
+                debtor.items.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="item-description">${escapeHtml(item.description)}</td>
+                        <td class="item-amount">${formatCurrency(item.amount)}</td>
+                    `;
+                    itemsBody.appendChild(row);
+                });
+
                 getElement('invoice-total').textContent = formatCurrency(debtor.amount);
 
                 html2canvas(invoiceTemplate, { scale: 2 }).then(canvas => {
@@ -1351,12 +1443,15 @@
                 const form = modal.querySelector('form'); if (form) form.reset();
                 try {
                     modal.querySelectorAll('input').forEach(i => i.style.borderColor = '');
-                    let dateInputToSync = null;
-                    if (modalId === 'add-transaction-modal') { const dateInput = getElement('tx-date'); if (dateInput) { const buttonGroup = dateInput.previousElementSibling; const activeButton = buttonGroup ? buttonGroup.querySelector('.date-button.active') : null; if (activeButton && !isNaN(parseInt(activeButton.dataset.days))) { const days = parseInt(activeButton.dataset.days); const date = new Date(); date.setDate(date.getDate() + days); dateInput.value = date.toISOString().split('T')[0]; } else { dateInput.value = new Date().toISOString().split('T')[0]; } dateInputToSync = dateInput; } }
-                    else if (modalId === 'add-goal-modal') { if (eliteMessageDiv) eliteMessageDiv.style.display = 'none'; }
-                    else if (modalId === 'add-conta-modal') { const dueDateInput = getElement('conta-dueDate'); if (dueDateInput) { const buttonGroup = dueDateInput.previousElementSibling; const activeButton = buttonGroup ? buttonGroup.querySelector('.date-button.active') : null; if (activeButton && !isNaN(parseInt(activeButton.dataset.days))) { const days = parseInt(activeButton.dataset.days); const date = new Date(); date.setDate(date.getDate() + days); dueDateInput.value = date.toISOString().split('T')[0]; } else { const defaultDate = new Date(); defaultDate.setMonth(defaultDate.getMonth() + 1); dueDateInput.value = defaultDate.toISOString().split('T')[0]; } dateInputToSync = dueDateInput; } }
-                    else if (modalId === 'add-pessoa-devendo-modal') { const dateInput = getElement('pessoa-devendo-date'); if (dateInput) { const buttonGroup = dateInput.previousElementSibling; const activeButton = buttonGroup ? buttonGroup.querySelector('.date-button.active') : null; if (activeButton && !isNaN(parseInt(activeButton.dataset.days))) { const days = parseInt(activeButton.dataset.days); const date = new Date(); date.setDate(date.getDate() + days); dateInput.value = date.toISOString().split('T')[0]; } else { dateInput.value = new Date().toISOString().split('T')[0]; } dateInputToSync = dateInput; } const descriptionInput = getElement('pessoa-devendo-description'); if (descriptionInput) descriptionInput.value = ''; }
-                    if (dateInputToSync) { dateInputToSync.dispatchEvent(new Event('change')); }
+                    if (modalId === 'add-pessoa-devendo-modal') {
+                        getElement('pessoa-devendo-date').value = new Date().toISOString().split('T')[0];
+                        debtItemsContainer.innerHTML = '';
+                        debtItemsContainer.appendChild(createDebtItemElement());
+                        updateDebtorTotal();
+                    }
+                    if (modalId === 'add-goal-modal') {
+                        if (eliteMessageDiv) eliteMessageDiv.style.display = 'none';
+                    }
                 } catch (resetError) { console.error(`Error in openModal for ${modalId}:`, resetError); }
                 modal.style.animation = ''; modal.style.display = 'flex'; void modal.offsetWidth;
                 modal.style.animation = 'modalFadeIn 0.4s ease forwards, modalSlideIn 0.5s cubic-bezier(0.25,0.8,0.25,1) forwards';
@@ -1390,7 +1485,7 @@
                     else if (sectionKey === 'relatorio') renderReportSectionCharts();
                     
                     if (window.innerWidth <= 800 && sidebar.classList.contains('is-open')) {
-                        toggleMenu(); // Fechar o menu após a navegação no mobile
+                        toggleMenu();
                     }
                 }, 50);
             };
@@ -1436,7 +1531,7 @@
             
             // --- INICIALIZAÇÃO E LISTENERS DE EVENTOS ---
             const initializeApp = () => {
-                console.log("Initializing Responsive Finance App v10.5...");
+                console.log("Initializing Responsive Finance App v10.6...");
                 loadData();
                 renderAll();
                 setupDateButtons();
@@ -1459,7 +1554,7 @@
                 if (addContaForm) addContaForm.addEventListener('submit', handleAddContaSubmit);
                 if (addPessoaDevendoForm) addPessoaDevendoForm.addEventListener('submit', handleAddPessoaDevendoSubmit);
 
-                // Listeners Globais (Modais e Navegação)
+                // Listeners Globais
                 document.body.addEventListener('click', (e) => {
                     if (e.target.classList.contains('close-modal-btn')) {
                         const modalId = e.target.dataset.modalId;
@@ -1471,7 +1566,7 @@
                 });
                 navLinks.forEach(link => link.addEventListener('click', handleNavClick));
 
-                // DELEGAÇÃO DE EVENTOS PARA AÇÕES NAS TABELAS (CORREÇÃO PRINCIPAL)
+                // Delegação de Eventos para Ações nas Tabelas e Modais Dinâmicos
                 if (historySectionContainer) historySectionContainer.addEventListener('click', (e) => {
                     const deleteBtn = e.target.closest('.delete-btn');
                     if (deleteBtn) handleDeleteTransaction(deleteBtn);
@@ -1497,6 +1592,20 @@
                     if (receivedBtn) handleMarkAsReceivedClick(receivedBtn);
                     if (pdfBtn) handleDownloadPdfClick(pdfBtn);
                     if (deleteBtn) handleDeleteDebtorClick(deleteBtn);
+                });
+                if(addDebtItemBtn) addDebtItemBtn.addEventListener('click', () => {
+                    debtItemsContainer.appendChild(createDebtItemElement());
+                });
+                if(debtItemsContainer) debtItemsContainer.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('remove-debt-item-btn')) {
+                        e.target.closest('.debt-item').remove();
+                        updateDebtorTotal();
+                    }
+                });
+                if(debtItemsContainer) debtItemsContainer.addEventListener('input', (e) => {
+                    if (e.target.classList.contains('debt-item-amount-input')) {
+                        updateDebtorTotal();
+                    }
                 });
                 console.log("App Initialized Successfully.");
             };
