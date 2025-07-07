@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciador Financeiro v10.3 - Corrigido e Responsivo</title> <!-- Versão Atualizada -->
+    <title>Gerenciador Financeiro v10.5 - Corrigido e Otimizado</title> <!-- Versão Atualizada -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         /* Reset Básico e Configurações Globais */  
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; }
@@ -142,6 +144,8 @@
         .mark-paid-btn { color: #3fb950 !important; }
         .mark-paid-btn:hover { color: #5ae470 !important; transform: scale(1.2); }
         .delete-conta-btn:hover { color: #f85149 !important; }
+        .download-pdf-btn { color: #58a6ff !important; /* Cor para o novo botão */ }
+        .download-pdf-btn:hover { color: #82baff !important; transform: scale(1.2); }
 
         /* --- Pessoas Devendo (Nova Seção) --- */
         #pessoas-devendo-content .data-table-container h3 { font-size: 1.3em; color: #e0e0e0; font-weight: 600; }
@@ -212,85 +216,54 @@
         .date-button.active { border-color: #58a6ff; background-color: rgba(88, 166, 255, 0.15); color: #ffffff; }
         .modal input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8) brightness(1.1); cursor: pointer; padding: 2px; margin-left: 5px; opacity: 0.75; transition: opacity 0.2s ease; }
         .modal input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
-
-        /* ================================================= */
-        /* ===========  DESIGN RESPONSIVO (MOBILE) ========= */
-        /* ================================================= */
+        
+        /* CSS para o Template da Fatura (PDF) */
+        #pdf-invoice-template {
+            position: absolute; left: -9999px; /* Esconde fora da tela */
+            top: 0; width: 800px; background-color: #ffffff; color: #333;
+            font-family: Arial, sans-serif; padding: 40px; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .invoice-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
+        .invoice-header .logo { font-size: 24px; font-weight: bold; }
+        .invoice-header .status-paid { background-color: #e8f5e9; color: #388e3c; padding: 8px 16px; border-radius: 16px; font-weight: bold; }
+        .invoice-header .status-unpaid { background-color: #fff3e0; color: #f57c00; padding: 8px 16px; border-radius: 16px; font-weight: bold; }
+        .invoice-title { font-size: 36px; font-weight: bold; margin-bottom: 10px; color: #000; }
+        .invoice-details { display: flex; justify-content: space-between; margin-bottom: 40px; }
+        .invoice-details .detail-block { font-size: 14px; line-height: 1.5; }
+        .invoice-details .detail-block .label { color: #888; text-transform: uppercase; font-size: 12px; }
+        .invoice-details .bill-to { text-align: right; }
+        .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        .invoice-table thead { border-bottom: 2px solid #ddd; }
+        .invoice-table th { padding: 10px 0; text-align: left; color: #888; font-size: 12px; text-transform: uppercase; }
+        .invoice-table th:last-child { text-align: right; }
+        .invoice-table tbody tr td { padding: 15px 0; border-bottom: 1px solid #eee; }
+        .invoice-table tbody tr:last-child td { border-bottom: none; }
+        .invoice-table .item-description { font-weight: bold; }
+        .invoice-table .item-amount { text-align: right; font-weight: bold; font-size: 16px; }
+        .invoice-totals { display: flex; justify-content: flex-end; }
+        .invoice-totals table { width: 300px; text-align: right; line-height: 1.8; }
+        .invoice-totals .total-row td { font-weight: bold; font-size: 22px; padding-top: 10px; border-top: 2px solid #333; }
 
         @media (max-width: 800px) {
-            body { display: block; /* Mudar para block para layout mobile */ }
-
-            /* --- Ajustes do Menu Lateral (Sidebar) para Mobile --- */
-            .sidebar {
-                position: fixed; /* Fixar na tela */
-                top: 0;
-                left: 0;
-                height: 100%;
-                z-index: 1100; /* Mais alto que o overlay */
-                transform: translateX(-100%); /* Esconder fora da tela por padrão */
-                box-shadow: 4px 0 20px rgba(0,0,0,0.5);
-            }
-            .sidebar.is-open {
-                transform: translateX(0); /* Mostrar o menu */
-            }
-
-            /* --- Ajustes do Container Principal para Mobile --- */
-            .main-container {
-                width: 100%; /* Ocupar toda a largura */
-                transform: translateX(0); /* Resetar qualquer transformação */
-            }
-            
-            /* --- Ajustes da Barra Superior (Top Bar) para Mobile --- */
-            .top-bar {
-                justify-content: space-between; /* Espaçar o botão de menu e o avatar */
-                padding: 15px 20px;
-            }
-            .menu-toggle-btn {
-                display: block; /* Mostrar o botão de menu */
-            }
-
-            /* --- Ajustes da Área de Conteúdo para Mobile --- */
-            .content-area {
-                padding: 20px 15px; /* Reduzir padding */
-            }
-            .section-title {
-                font-size: 1.3em;
-            }
-            
-            /* --- Ajustes dos Cards e Gráficos --- */
-            .summary-section, .report-summary-section {
-                gap: 15px; /* Reduzir o espaçamento entre cards */
-            }
-            .summary-card, .planning-summary-card, .report-card {
-                padding: 20px;
-                min-width: 100%; /* Fazer os cards ocuparem a largura total */
-            }
-            .balance-card .balance-display {
-                font-size: 2em;
-            }
-            
-            /* --- Ajustes das Tabelas --- */
-            /* O container já tem overflow-x: auto, o que é ideal para mobile */
-            .data-table-container {
-                padding: 15px;
-            }
-
-            /* --- Ajustes dos Modais --- */
-            .modal-content {
-                width: 95%; /* Ocupar mais da tela */
-                padding: 25px 20px;
-            }
-            .modal h2 {
-                font-size: 1.4em;
-            }
-            .date-buttons {
-                flex-wrap: wrap; /* Permitir que os botões de data quebrem a linha se necessário */
-            }
+            body { display: block; }
+            .sidebar { position: fixed; top: 0; left: 0; height: 100%; z-index: 1100; transform: translateX(-100%); box-shadow: 4px 0 20px rgba(0,0,0,0.5); }
+            .sidebar.is-open { transform: translateX(0); }
+            .main-container { width: 100%; transform: translateX(0); }
+            .top-bar { justify-content: space-between; padding: 15px 20px; }
+            .menu-toggle-btn { display: block; }
+            .content-area { padding: 20px 15px; }
+            .section-title { font-size: 1.3em; }
+            .summary-section, .report-summary-section { gap: 15px; }
+            .summary-card, .planning-summary-card, .report-card { padding: 20px; min-width: 100%; }
+            .balance-card .balance-display { font-size: 2em; }
+            .data-table-container { padding: 15px; }
+            .modal-content { width: 95%; padding: 25px 20px; }
+            .modal h2 { font-size: 1.4em; }
+            .date-buttons { flex-wrap: wrap; }
         }
     </style>
 </head>
 <body>
-
     <!-- Menu Lateral -->
     <aside class="sidebar">
         <h2>Finance App</h2>
@@ -415,7 +388,7 @@
                 </div>
             </div>
 
-            <!-- ====================== Seção Pessoas Devendo (Nova) ====================== -->
+            <!-- ====================== Seção Pessoas Devendo ====================== -->
             <div id="pessoas-devendo-content" class="content-section">
                 <h2 class="section-title">Pessoas Devendo a Mim</h2>
                 <button id="add-pessoa-devendo-btn" class="add-button" style="margin-bottom: 25px;">
@@ -480,6 +453,58 @@
             </div>
         </main>
     </div>
+    
+    <!-- Template da Fatura para PDF -->
+    <div id="pdf-invoice-template">
+        <div class="invoice-header">
+            <div class="logo">Finance App</div>
+            <div id="invoice-status" class="status-unpaid">Em Aberto</div>
+        </div>
+        <h1 class="invoice-title" id="invoice-number">#INV-000000</h1>
+        <div class="invoice-details">
+            <div class="detail-block">
+                <div class="label">Data Emissão</div>
+                <div id="invoice-date-issued">--/--/----</div>
+            </div>
+            <div class="detail-block bill-to">
+                <div class="label">Cobrança Para</div>
+                <div id="invoice-bill-to-name">Nome do Devedor</div>
+            </div>
+        </div>
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th class="item-amount">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="item-description" id="invoice-item-description">Descrição do item</td>
+                    <td class="item-amount" id="invoice-item-amount">R$ 0,00</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="invoice-totals">
+            <table>
+                <tbody>
+                    <tr>
+                        <td>Subtotal</td>
+                        <td id="invoice-subtotal">R$ 0,00</td>
+                    </tr>
+                    <tr>
+                        <td>Taxa (0%)</td>
+                        <td id="invoice-tax">R$ 0,00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>TOTAL</td>
+                        <td id="invoice-total">R$ 0,00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 
     <!-- ====================== Modais ====================== -->
     <div id="add-transaction-modal" class="modal">
@@ -699,30 +724,22 @@
             const noHistoryMessageEl = getElement('no-history-message');
 
             // Modais & Forms
-            const transactionModal = getElement('add-transaction-modal');
             const transactionForm = getElement('transaction-form');
-            const planItemModal = getElement('add-plan-item-modal');
             const planItemForm = getElement('plan-item-form');
-            const addGoalModal = getElement('add-goal-modal');
             const addGoalForm = getElement('add-goal-form');
-            const addContaModal = getElement('add-conta-modal');
             const addContaForm = getElement('add-conta-form');
-            const addPessoaDevendoModal = getElement('add-pessoa-devendo-modal');
             const addPessoaDevendoForm = getElement('add-pessoa-devendo-form');
 
             // --- Constantes ---
             const STORAGE_KEYS = {
-                transactions: 'financeTransactions_v10.3',
-                planning: 'financePlanningItems_v10.3',
-                goal: 'financeCurrentGoal_v10.3',
-                bills: 'financeContasAPagar_v10.3',
-                debtors: 'financeDebtors_v10.3'
+                transactions: 'financeTransactions_v10.5',
+                planning: 'financePlanningItems_v10.5',
+                goal: 'financeCurrentGoal_v10.5',
+                bills: 'financeContasAPagar_v10.5',
+                debtors: 'financeDebtors_v10.5'
             };
             const monthNamesPtBr = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
             const monthNamesFullPtBr = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-            const SAVINGS_GRID_VALUES = [5,10,10,5,100,5,20,5,100,20,5,20,50,50,20,50,50,10,100,5,20,10,5,20,5,10,20,10,10,50,20,100,5,10,5,50,20,200,200,100,20,10,10,20,10,5,10,5,10,50,10,5,10,20,10,10,20,50,50,5,50,5,200,10,20,5,50,20,5,20,10,20,10,5,20,10,100,50,10,50,50,20,5,50,100,20,5,20,5,500,10,5,5,10,100,5,20,100,5,10,5,20,100,5,20,50,20,50,50,10,20,200,5,50,10,10,10,5,5,10,10,20,500,20,10,20,500,20,5,50,5,20,20,200,5,5,10,50,200,5,20,100,50,50,10,10,20,5,50,50,100,10,5,5,20,10,100,50,100,5,200,20,5,20,5,20,100,5,50,10,20,5,100,5,10,50,20,10,100,5,5,100,20,200,5,20,5,20,20,100,5,20,5,20,50,10,20,20,5,20,100,5,20,10,5,10,10,5,20,5,20,5,20,5,20,100,5,20,10,100,5,10,100,5,10,5,20];
-            function shuffleArray(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a;}
-            const fixedSavingsGridValues = shuffleArray([...SAVINGS_GRID_VALUES]);
 
             // --- Estado ---
             let transactions = [];
@@ -772,9 +789,6 @@
             };
             const saveData = (key, data) => { try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) { console.error(`Error saving ${key}:`, e); showToast(`Erro ao salvar dados (${key}).`); } };
             
-            // --- CÁLCULOS & RENDERIZAÇÕES (O JavaScript principal permanece o mesmo) ---
-            // Nenhuma mudança é necessária aqui, pois a lógica de dados não muda.
-            // ... (todo o bloco de funções de cálculo e renderização do seu script original)
             // --- Funções de Cálculo Core ---
             const calculateRunningBalances = () => {
                 const balances = {};
@@ -834,19 +848,6 @@
                 const { transactionBalances } = calculateRunningBalances();
                 const months = Object.keys(groupedTransactions).sort().reverse();
 
-                if (months.length === 0) {
-                    const titleH3 = document.createElement('h3');
-                    titleH3.className = 'section-title';
-                    titleH3.style.marginBottom = '20px';
-                    titleH3.style.border = 'none';
-                    titleH3.style.paddingBottom = '0';
-                    titleH3.textContent = 'Histórico de Movimentações';
-                    historySectionContainer.appendChild(titleH3);
-                    historySectionContainer.appendChild(historyPlaceholder);
-                    historyPlaceholder.style.display = 'block';
-                    return;
-                }
-                
                 const mainTitleH3 = document.createElement('h3');
                 mainTitleH3.className = 'section-title';
                 mainTitleH3.style.marginBottom = '20px';
@@ -855,6 +856,12 @@
                 mainTitleH3.textContent = 'Histórico de Movimentações';
                 historySectionContainer.appendChild(mainTitleH3);
 
+                if (months.length === 0) {
+                    historySectionContainer.appendChild(historyPlaceholder);
+                    historyPlaceholder.style.display = 'block';
+                    return;
+                }
+                
                 months.forEach(monthKey => {
                     const [year, month] = monthKey.split('-').map(Number);
                     const monthName = monthNamesFullPtBr[month - 1];
@@ -892,14 +899,9 @@
                     monthContainer.appendChild(table);
                     historySectionContainer.appendChild(monthContainer);
                 });
-                historySectionContainer.querySelectorAll('.delete-btn').forEach(button => {
-                    button.removeEventListener('click', handleDeleteTransaction);
-                    button.addEventListener('click', handleDeleteTransaction);
-                });
             };
 
             // Planejamento: Tabela e Resumo
-            const renderPlanningAll = () => { renderPlanningTable(); };
             const renderPlanningTable = () => {
                 if (!planningTbody || !noPlanningPlaceholder) return;
                 planningTbody.innerHTML = '';
@@ -928,12 +930,8 @@
                             <td class="actions"><button class="delete-plan-item-btn" data-id="${item.id}" title="Remover Item do Plano">🗑️</button></td>`;
                         planningTbody.appendChild(tr);
                     });
-                    planningTbody.querySelectorAll('.delete-plan-item-btn').forEach(button => {
-                        button.removeEventListener('click', handleDeletePlanItem);
-                        button.addEventListener('click', handleDeletePlanItem);
-                    });
                 }
-                 renderPlanningSummary(totalPlannedIncome, totalPlannedExpense);
+                renderPlanningSummary(totalPlannedIncome, totalPlannedExpense);
             };
             const renderPlanningSummary = (totalPlannedIncome, totalPlannedExpense) => {
                 if (!planBalanceEl || !planProfitPctEl || !planExpensePctEl || !planTotalExpenseEl || !planTotalIncomeEl) return;
@@ -957,15 +955,11 @@
                 if (!currentGoal || !currentGoal.squares || !Array.isArray(currentGoal.squares)) {
                     return { savedCount: 0, percent: 0, currentSaved: 0, daysElapsed: 0 };
                 }
-                let savedCount = 0; let currentSaved = 0;
-                for (let i = 0; i < Math.min(currentGoal.squares.length, fixedSavingsGridValues.length); i++) {
-                    if (currentGoal.squares[i]) {
-                        savedCount++;
-                        currentSaved += fixedSavingsGridValues[i] || 0;
-                    }
-                }
-                let percent = 0;
-                if (currentGoal.targetAmount > 0) { percent = (currentSaved / currentGoal.targetAmount) * 100; }
+                let currentSaved = 0;
+                currentGoal.squares.forEach((isSaved, index) => {
+                    if (isSaved) { currentSaved += (currentGoal.gridValues[index] || 0); }
+                });
+                let percent = (currentGoal.targetAmount > 0) ? (currentSaved / currentGoal.targetAmount) * 100 : 0;
                 percent = Math.max(0, Math.min(percent, 100));
                 let daysElapsed = 0;
                 if (currentGoal.startDate && isValidDateString(currentGoal.startDate)) {
@@ -976,7 +970,7 @@
                         daysElapsed = Math.max(0, daysBetween(todayUTCStart, startDate));
                     } catch(e) { console.error("Error calculating days elapsed:", e); }
                 }
-                return { savedCount, percent, currentSaved, daysElapsed };
+                return { percent, currentSaved, daysElapsed };
             };
             const renderGoalSection = () => {
                 const hasGoal = !!currentGoal;
@@ -1006,15 +1000,10 @@
             const renderSavingsGrid = () => {
                  if (!savingsGridEl || !currentGoal || !currentGoal.squares || !Array.isArray(currentGoal.squares)) return;
                  savingsGridEl.innerHTML = '';
-                 const numSquares = Math.min(100, fixedSavingsGridValues.length);
-                 if (currentGoal.squares.length !== numSquares) {
-                    const newSquares = Array(numSquares).fill(false);
-                    for(let i = 0; i < Math.min(currentGoal.squares.length, numSquares); i++) { newSquares[i] = currentGoal.squares[i]; }
-                    currentGoal.squares = newSquares;
-                 }
-                 for (let i = 0; i < numSquares; i++) {
+                 const gridValues = currentGoal.gridValues || [];
+                 for (let i = 0; i < gridValues.length; i++) {
                     const square = document.createElement('div');
-                    const value = fixedSavingsGridValues[i] || 0;
+                    const value = gridValues[i] || 0;
                     const valueStr = value.toString();
                     square.className = 'savings-square';
                     square.dataset.index = i;
@@ -1022,8 +1011,6 @@
                     square.textContent = valueStr;
                     square.title = `Marcar ${formatCurrency(value)}`;
                     if (currentGoal.squares[i]) { square.classList.add('saved'); square.title = `Salvo! (${formatCurrency(value)})`; }
-                    square.removeEventListener('click', handleSquareClick);
-                    square.addEventListener('click', handleSquareClick);
                     savingsGridEl.appendChild(square);
                 }
             };
@@ -1068,8 +1055,6 @@
                         </td>`;
                     contasTbody.appendChild(tr);
                 });
-                contasTbody.querySelectorAll('.mark-paid-btn').forEach(btn => { btn.removeEventListener('click', handleMarkAsPaidClick); btn.addEventListener('click', handleMarkAsPaidClick); });
-                contasTbody.querySelectorAll('.delete-conta-btn').forEach(btn => { btn.removeEventListener('click', handleDeleteContaClick); btn.addEventListener('click', handleDeleteContaClick); });
             };
 
             // Pessoas Devendo: Tabela
@@ -1105,13 +1090,11 @@
                         <td>${statusText}</td>
                         <td class="actions">
                             ${!debtor.isPaid ? `<button class="mark-received-btn" data-id="${debtor.id}" title="Marcar como Recebido">✔️</button>` : ''}
+                            <button class="download-pdf-btn" data-id="${debtor.id}" title="Baixar PDF da Cobrança">📄</button>
                             <button class="delete-debtor-btn" data-id="${debtor.id}" title="Excluir Registro">🗑️</button>
                         </td>`;
                     pessoasDevendoTbody.appendChild(tr);
                 });
-
-                pessoasDevendoTbody.querySelectorAll('.mark-received-btn').forEach(btn => { btn.removeEventListener('click', handleMarkAsReceivedClick); btn.addEventListener('click', handleMarkAsReceivedClick); });
-                pessoasDevendoTbody.querySelectorAll('.delete-debtor-btn').forEach(btn => { btn.removeEventListener('click', handleDeleteDebtorClick); btn.addEventListener('click', handleDeleteDebtorClick); });
             };
 
             // --- Funções de Renderização de Gráficos ---
@@ -1208,20 +1191,159 @@
             };
             
             // --- Handlers de Eventos ---
-            const handleDeleteTransaction = (e) => { const button = e.target.closest('button'); if (!button) return; const transactionId = parseInt(button.dataset.id); if (isNaN(transactionId)) return; const txIndex = transactions.findIndex(tx => tx.id === transactionId); if (txIndex === -1) { showToast("Erro: Movimentação não encontrada."); return; } if (confirm(`Tem certeza que deseja excluir "${escapeHtml(transactions[txIndex].description)}"?`)) { transactions.splice(txIndex, 1); saveData(STORAGE_KEYS.transactions, transactions); renderAll(); showToast('Movimentação excluída.'); } };
-            const handleAddTransaction = (e) => { e.preventDefault(); if (!transactionForm) return; const dateInput = getElement('tx-date'), descriptionInput = getElement('tx-description'), amountInput = getElement('tx-amount'); const typeInput = transactionForm.querySelector('input[name="tx-type"]:checked'); const amount = parseFloat(amountInput?.value); if (!dateInput?.value || !descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !typeInput?.value) { showToast("Erro: Preencha todos os campos corretamente.", 4000); return; } transactions.push({ id: Date.now(), date: dateInput.value, description: descriptionInput.value.trim(), amount: amount, type: typeInput.value }); saveData(STORAGE_KEYS.transactions, transactions); renderAll(); closeModal('add-transaction-modal'); showToast('Movimentação adicionada!'); };
-            const handleAddPlanItem = (e) => { e.preventDefault(); if (!planItemForm) return; const descriptionInput = getElement('plan-description'), amountInput = getElement('plan-amount'); const typeInput = planItemForm.querySelector('input[name="plan-type"]:checked'); const amount = parseFloat(amountInput?.value); if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !typeInput?.value) { showToast("Erro: Preencha todos os campos do plano corretamente.", 4000); return; } planningItems.push({ id: Date.now(), description: descriptionInput.value.trim(), amount: amount, type: typeInput.value }); saveData(STORAGE_KEYS.planning, planningItems); renderPlanningAll(); closeModal('add-plan-item-modal'); showToast('Item adicionado ao plano!'); };
-            const handleDeletePlanItem = (e) => { const button = e.target.closest('button'); if (!button) return; const itemId = parseInt(button.dataset.id); if (isNaN(itemId)) return; const itemIndex = planningItems.findIndex(item => item.id === itemId); if (itemIndex === -1) { showToast("Erro: Item do plano não encontrado."); return; } planningItems.splice(itemIndex, 1); saveData(STORAGE_KEYS.planning, planningItems); renderPlanningAll(); showToast('Item removido do plano.'); };
-            const handleClearPlan = () => { if (planningItems.length === 0) { showToast('O plano já está vazio.'); return; } if (confirm('Limpar todo o plano?')) { planningItems = []; saveData(STORAGE_KEYS.planning, planningItems); renderPlanningAll(); showToast('Plano limpo.'); } };
-            const handleAddGoal = (e) => { e.preventDefault(); if (!addGoalForm) return; const descriptionInput = getElement('goal-modal-description'), amountInput = getElement('goal-modal-amount'); const deadlineInput = addGoalForm.querySelector('input[name="goal-deadline"]:checked'); const targetAmount = parseFloat(amountInput?.value); if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(targetAmount) || targetAmount <= 0 || !deadlineInput?.value) { showToast("Erro: Preencha todos os campos do objetivo.", 4000); return; } if (targetAmount > 50000) { if (eliteMessageDiv) eliteMessageDiv.style.display = 'block'; if (amountInput) amountInput.style.borderColor = '#f39c12'; showToast('Objetivos > R$ 50.000 requerem versão Elite.', 4000); return; } else { if (eliteMessageDiv) eliteMessageDiv.style.display = 'none'; if (amountInput) amountInput.style.borderColor = ''; } const startDate = new Date(); const estimatedCompletionDate = new Date(startDate); let monthsToAdd = 0; if (deadlineInput.value === 'short') monthsToAdd = 6; else if (deadlineInput.value === 'medium') monthsToAdd = 12; else if (deadlineInput.value === 'long') monthsToAdd = 36; estimatedCompletionDate.setMonth(startDate.getMonth() + monthsToAdd); currentGoal = { id: Date.now(), description: descriptionInput.value.trim(), targetAmount: targetAmount, deadlineType: deadlineInput.value, startDate: startDate.toISOString().split('T')[0], estimatedCompletionDate: estimatedCompletionDate.toISOString().split('T')[0], squares: Array(100).fill(false) }; saveData(STORAGE_KEYS.goal, currentGoal); renderGoalSection(); closeModal('add-goal-modal'); showToast('Objetivo definido!'); };
-            const handleSquareClick = (e) => { if (!currentGoal || !currentGoal.squares || !Array.isArray(currentGoal.squares)) return; const square = e.target.closest('.savings-square'); if (!square) return; const index = parseInt(square.dataset.index); if (isNaN(index) || index < 0 || index >= currentGoal.squares.length) return; currentGoal.squares[index] = !currentGoal.squares[index]; saveData(STORAGE_KEYS.goal, currentGoal); renderGoalSection(); square.style.transform = 'scale(0.9)'; setTimeout(() => { if (square) square.style.transform = ''; }, 150); };
+            const handleDeleteTransaction = (button) => {
+                const transactionId = parseInt(button.dataset.id);
+                if (isNaN(transactionId)) return;
+                const txIndex = transactions.findIndex(tx => tx.id === transactionId);
+                if (txIndex === -1) { showToast("Erro: Movimentação não encontrada."); return; }
+                if (confirm(`Tem certeza que deseja excluir "${escapeHtml(transactions[txIndex].description)}"?`)) {
+                    transactions.splice(txIndex, 1);
+                    saveData(STORAGE_KEYS.transactions, transactions);
+                    renderAll();
+                    showToast('Movimentação excluída.');
+                }
+            };
+            const handleAddTransaction = (e) => { e.preventDefault(); const dateInput = getElement('tx-date'), descriptionInput = getElement('tx-description'), amountInput = getElement('tx-amount'); const typeInput = transactionForm.querySelector('input[name="tx-type"]:checked'); const amount = parseFloat(amountInput?.value); if (!dateInput?.value || !descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !typeInput?.value) { showToast("Erro: Preencha todos os campos corretamente.", 4000); return; } transactions.push({ id: Date.now(), date: dateInput.value, description: descriptionInput.value.trim(), amount: amount, type: typeInput.value }); saveData(STORAGE_KEYS.transactions, transactions); renderAll(); closeModal('add-transaction-modal'); showToast('Movimentação adicionada!'); };
+            
+            const handleDeletePlanItem = (button) => {
+                const itemId = parseInt(button.dataset.id); if (isNaN(itemId)) return;
+                const itemIndex = planningItems.findIndex(item => item.id === itemId);
+                if (itemIndex > -1) {
+                    planningItems.splice(itemIndex, 1);
+                    saveData(STORAGE_KEYS.planning, planningItems);
+                    renderPlanningTable();
+                    showToast('Item removido do plano.');
+                }
+            };
+            const handleAddPlanItem = (e) => { e.preventDefault(); const descriptionInput = getElement('plan-description'), amountInput = getElement('plan-amount'); const typeInput = planItemForm.querySelector('input[name="plan-type"]:checked'); const amount = parseFloat(amountInput?.value); if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !typeInput?.value) { showToast("Erro: Preencha todos os campos do plano corretamente.", 4000); return; } planningItems.push({ id: Date.now(), description: descriptionInput.value.trim(), amount: amount, type: typeInput.value }); saveData(STORAGE_KEYS.planning, planningItems); renderPlanningTable(); closeModal('add-plan-item-modal'); showToast('Item adicionado ao plano!'); };
+            const handleClearPlan = () => { if (planningItems.length === 0) { showToast('O plano já está vazio.'); return; } if (confirm('Limpar todo o plano?')) { planningItems = []; saveData(STORAGE_KEYS.planning, planningItems); renderPlanningTable(); showToast('Plano limpo.'); } };
+            
+            const handleAddGoal = (e) => {
+                e.preventDefault();
+                const descriptionInput = getElement('goal-modal-description');
+                const amountInput = getElement('goal-modal-amount');
+                const deadlineInput = addGoalForm.querySelector('input[name="goal-deadline"]:checked');
+                const targetAmount = parseFloat(amountInput?.value);
+                if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(targetAmount) || targetAmount <= 0 || !deadlineInput?.value) {
+                    showToast("Erro: Preencha todos os campos do objetivo.", 4000); return;
+                }
+                if (targetAmount > 50000) {
+                    if (eliteMessageDiv) eliteMessageDiv.style.display = 'block';
+                    if (amountInput) amountInput.style.borderColor = '#f39c12';
+                    showToast('Objetivos > R$ 50.000 requerem versão Elite.', 4000); return;
+                } else {
+                    if (eliteMessageDiv) eliteMessageDiv.style.display = 'none';
+                    if (amountInput) amountInput.style.borderColor = '';
+                }
+                const SAVINGS_GRID_VALUES = [5,10,10,5,100,5,20,5,100,20,5,20,50,50,20,50,50,10,100,5,20,10,5,20,5,10,20,10,10,50,20,100,5,10,5,50,20,200,200,100,20,10,10,20,10,5,10,5,10,50,10,5,10,20,10,10,20,50,50,5,50,5,200,10,20,5,50,20,5,20,10,20,10,5,20,10,100,50,10,50,50,20,5,50,100,20,5,20,5,500,10,5,5,10,100,5,20,100,5,10,5,20,100,5,20,50,20,50,50,10,20,200,5,50,10,10,10,5,5,10,10,20,500,20,10,20,500,20,5,50,5,20,20,200,5,5,10,50,200,5,20,100,50,50,10,10,20,5,50,50,100,10,5,5,20,10,100,50,100,5,200,20,5,20,5,20,100,5,50,10,20,5,100,5,10,50,20,10,100,5,5,100,20,200,5,20,5,20,20,100,5,20,5,20,50,10,20,20,5,20,100,5,20,10,5,10,10,5,20,5,20,5,20,5,20,100,5,20,10,100,5,10,100,5,10,5,20];
+                function shuffleArray(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a;}
+                const shuffledGridValues = shuffleArray([...SAVINGS_GRID_VALUES]).slice(0, 100);
+
+                const startDate = new Date();
+                const estimatedCompletionDate = new Date(startDate);
+                let monthsToAdd = 0;
+                if (deadlineInput.value === 'short') monthsToAdd = 6;
+                else if (deadlineInput.value === 'medium') monthsToAdd = 12;
+                else if (deadlineInput.value === 'long') monthsToAdd = 36;
+                estimatedCompletionDate.setMonth(startDate.getMonth() + monthsToAdd);
+
+                currentGoal = {
+                    id: Date.now(),
+                    description: descriptionInput.value.trim(),
+                    targetAmount: targetAmount,
+                    deadlineType: deadlineInput.value,
+                    startDate: startDate.toISOString().split('T')[0],
+                    estimatedCompletionDate: estimatedCompletionDate.toISOString().split('T')[0],
+                    squares: Array(shuffledGridValues.length).fill(false),
+                    gridValues: shuffledGridValues
+                };
+                saveData(STORAGE_KEYS.goal, currentGoal);
+                renderGoalSection();
+                closeModal('add-goal-modal');
+                showToast('Objetivo definido!');
+            };
+            const handleSquareClick = (square) => { if (!currentGoal || !currentGoal.squares || !Array.isArray(currentGoal.squares)) return; const index = parseInt(square.dataset.index); if (isNaN(index) || index < 0 || index >= currentGoal.squares.length) return; currentGoal.squares[index] = !currentGoal.squares[index]; saveData(STORAGE_KEYS.goal, currentGoal); renderGoalSection(); square.style.transform = 'scale(0.9)'; setTimeout(() => { if (square) square.style.transform = ''; }, 150); };
             const handleRemoveGoal = () => { if (!currentGoal) { showToast("Nenhum objetivo ativo."); return; } if (confirm(`Remover objetivo "${escapeHtml(currentGoal.description)}"?`)) { currentGoal = null; saveData(STORAGE_KEYS.goal, currentGoal); renderGoalSection(); showToast("Objetivo removido."); } };
-            const handleAddContaSubmit = (e) => { e.preventDefault(); if (!addContaForm) return; const descriptionInput = getElement('conta-description'), amountInput = getElement('conta-amount'), dueDateInput = getElement('conta-dueDate'); const amount = parseFloat(amountInput?.value); const dueDate = dueDateInput?.value; if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !dueDate || !isValidDateString(dueDate)) { showToast('Erro: Preencha todos os campos da conta.', 4000); return; } contasAPagar.push({ id: Date.now(), description: descriptionInput.value.trim(), amount: amount, dueDate: dueDate, isPaid: false }); saveData(STORAGE_KEYS.bills, contasAPagar); renderContasAPagar(); closeModal('add-conta-modal'); showToast('Conta adicionada!'); };
-            const handleMarkAsPaidClick = (e) => { const button = e.target.closest('button'); if (!button) return; const contaId = parseInt(button.dataset.id); if (isNaN(contaId)) return; const contaIndex = contasAPagar.findIndex(c => c.id === contaId); if (contaIndex > -1) { contasAPagar[contaIndex].isPaid = true; saveData(STORAGE_KEYS.bills, contasAPagar); renderContasAPagar(); showToast(`Conta "${escapeHtml(contasAPagar[contaIndex].description)}" paga.`); } else { showToast("Erro: Conta não encontrada."); } };
-            const handleDeleteContaClick = (e) => { const button = e.target.closest('button'); if (!button) return; const contaId = parseInt(button.dataset.id); if (isNaN(contaId)) return; const contaIndex = contasAPagar.findIndex(c => c.id === contaId); if (contaIndex > -1) { if (confirm(`Excluir conta "${escapeHtml(contasAPagar[contaIndex].description)}"?`)) { contasAPagar.splice(contaIndex, 1); saveData(STORAGE_KEYS.bills, contasAPagar); renderContasAPagar(); showToast('Conta excluída.'); } } else { showToast("Erro: Conta não encontrada."); } };
-            const handleAddPessoaDevendoSubmit = (e) => { e.preventDefault(); if (!addPessoaDevendoForm) return; const nameInput = getElement('pessoa-devendo-nome'); const amountInput = getElement('pessoa-devendo-amount'); const dateInput = getElement('pessoa-devendo-date'); const descriptionInput = getElement('pessoa-devendo-description'); const amount = parseFloat(amountInput?.value); const loanDate = dateInput?.value; if (!nameInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !loanDate || !isValidDateString(loanDate)) { showToast('Erro: Preencha nome, valor e data do empréstimo corretamente.', 4000); return; } const newDebtor = { id: Date.now(), name: nameInput.value.trim(), amount: amount, loanDate: loanDate, description: descriptionInput?.value.trim() || '', isPaid: false }; pessoasDevendo.push(newDebtor); saveData(STORAGE_KEYS.debtors, pessoasDevendo); renderPessoasDevendo(); closeModal('add-pessoa-devendo-modal'); showToast('Devedor adicionado!'); };
-            const handleMarkAsReceivedClick = (e) => { const button = e.target.closest('button'); if (!button) return; const debtorId = parseInt(button.dataset.id); if (isNaN(debtorId)) return; const debtorIndex = pessoasDevendo.findIndex(d => d.id === debtorId); if (debtorIndex > -1) { pessoasDevendo[debtorIndex].isPaid = true; saveData(STORAGE_KEYS.debtors, pessoasDevendo); renderPessoasDevendo(); showToast(`Valor de ${escapeHtml(pessoasDevendo[debtorIndex].name)} recebido.`); } else { showToast("Erro: Devedor não encontrado."); } };
-            const handleDeleteDebtorClick = (e) => { const button = e.target.closest('button'); if (!button) return; const debtorId = parseInt(button.dataset.id); if (isNaN(debtorId)) return; const debtorIndex = pessoasDevendo.findIndex(d => d.id === debtorId); if (debtorIndex > -1) { if (confirm(`Excluir o registro de ${escapeHtml(pessoasDevendo[debtorIndex].name)}?`)) { pessoasDevendo.splice(debtorIndex, 1); saveData(STORAGE_KEYS.debtors, pessoasDevendo); renderPessoasDevendo(); showToast('Registro de devedor excluído.'); } } else { showToast("Erro: Devedor não encontrado."); } };
+            
+            const handleAddContaSubmit = (e) => { e.preventDefault(); const descriptionInput = getElement('conta-description'), amountInput = getElement('conta-amount'), dueDateInput = getElement('conta-dueDate'); const amount = parseFloat(amountInput?.value); const dueDate = dueDateInput?.value; if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !dueDate || !isValidDateString(dueDate)) { showToast('Erro: Preencha todos os campos da conta.', 4000); return; } contasAPagar.push({ id: Date.now(), description: descriptionInput.value.trim(), amount: amount, dueDate: dueDate, isPaid: false }); saveData(STORAGE_KEYS.bills, contasAPagar); renderContasAPagar(); closeModal('add-conta-modal'); showToast('Conta adicionada!'); };
+            const handleMarkAsPaidClick = (button) => {
+                const contaId = parseInt(button.dataset.id); if (isNaN(contaId)) return;
+                const contaIndex = contasAPagar.findIndex(c => c.id === contaId);
+                if (contaIndex > -1) {
+                    contasAPagar[contaIndex].isPaid = true;
+                    saveData(STORAGE_KEYS.bills, contasAPagar);
+                    renderContasAPagar();
+                    showToast(`Conta "${escapeHtml(contasAPagar[contaIndex].description)}" paga.`);
+                } else { showToast("Erro: Conta não encontrada."); }
+            };
+            const handleDeleteContaClick = (button) => {
+                const contaId = parseInt(button.dataset.id); if (isNaN(contaId)) return;
+                const contaIndex = contasAPagar.findIndex(c => c.id === contaId);
+                if (contaIndex > -1) {
+                    if (confirm(`Excluir conta "${escapeHtml(contasAPagar[contaIndex].description)}"?`)) {
+                        contasAPagar.splice(contaIndex, 1);
+                        saveData(STORAGE_KEYS.bills, contasAPagar);
+                        renderContasAPagar();
+                        showToast('Conta excluída.');
+                    }
+                } else { showToast("Erro: Conta não encontrada."); }
+            };
+            
+            const handleAddPessoaDevendoSubmit = (e) => { e.preventDefault(); const nameInput = getElement('pessoa-devendo-nome'); const amountInput = getElement('pessoa-devendo-amount'); const dateInput = getElement('pessoa-devendo-date'); const descriptionInput = getElement('pessoa-devendo-description'); const amount = parseFloat(amountInput?.value); const loanDate = dateInput?.value; if (!nameInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !loanDate || !isValidDateString(loanDate)) { showToast('Erro: Preencha nome, valor e data do empréstimo corretamente.', 4000); return; } const newDebtor = { id: Date.now(), name: nameInput.value.trim(), amount: amount, loanDate: loanDate, description: descriptionInput?.value.trim() || '', isPaid: false }; pessoasDevendo.push(newDebtor); saveData(STORAGE_KEYS.debtors, pessoasDevendo); renderPessoasDevendo(); closeModal('add-pessoa-devendo-modal'); showToast('Devedor adicionado!'); };
+            const handleMarkAsReceivedClick = (button) => {
+                const debtorId = parseInt(button.dataset.id); if (isNaN(debtorId)) return;
+                const debtorIndex = pessoasDevendo.findIndex(d => d.id === debtorId);
+                if (debtorIndex > -1) {
+                    pessoasDevendo[debtorIndex].isPaid = true;
+                    saveData(STORAGE_KEYS.debtors, pessoasDevendo);
+                    renderPessoasDevendo();
+                    showToast(`Valor de ${escapeHtml(pessoasDevendo[debtorIndex].name)} recebido.`);
+                } else { showToast("Erro: Devedor não encontrado."); }
+            };
+            const handleDeleteDebtorClick = (button) => {
+                const debtorId = parseInt(button.dataset.id); if (isNaN(debtorId)) return;
+                const debtorIndex = pessoasDevendo.findIndex(d => d.id === debtorId);
+                if (debtorIndex > -1) {
+                    if (confirm(`Excluir o registro de ${escapeHtml(pessoasDevendo[debtorIndex].name)}?`)) {
+                        pessoasDevendo.splice(debtorIndex, 1);
+                        saveData(STORAGE_KEYS.debtors, pessoasDevendo);
+                        renderPessoasDevendo();
+                        showToast('Registro de devedor excluído.');
+                    }
+                } else { showToast("Erro: Devedor não encontrado."); }
+            };
+            const handleDownloadPdfClick = (button) => {
+                const debtorId = parseInt(button.dataset.id, 10); if (isNaN(debtorId)) return;
+                const debtor = pessoasDevendo.find(d => d.id === debtorId);
+                if (!debtor) { showToast("Erro: Devedor não encontrado."); return; }
+                showToast("Gerando PDF...", 2000);
+                const invoiceTemplate = getElement('pdf-invoice-template');
+                getElement('invoice-status').textContent = debtor.isPaid ? 'Recebido' : 'Em Aberto';
+                getElement('invoice-status').className = debtor.isPaid ? 'status-paid' : 'status-unpaid';
+                getElement('invoice-number').textContent = `#INV-${debtor.id}`;
+                getElement('invoice-date-issued').textContent = formatDate(debtor.loanDate);
+                getElement('invoice-bill-to-name').textContent = escapeHtml(debtor.name);
+                getElement('invoice-item-description').textContent = escapeHtml(debtor.description) || 'Empréstimo';
+                getElement('invoice-item-amount').textContent = formatCurrency(debtor.amount);
+                getElement('invoice-subtotal').textContent = formatCurrency(debtor.amount);
+                getElement('invoice-tax').textContent = formatCurrency(0);
+                getElement('invoice-total').textContent = formatCurrency(debtor.amount);
+
+                html2canvas(invoiceTemplate, { scale: 2 }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                    const fileName = `cobranca-${debtor.name.replace(/ /g, '_')}-${debtor.id}.pdf`;
+                    pdf.save(fileName);
+                    showToast("PDF baixado com sucesso!", 3500);
+                }).catch(err => {
+                    console.error("Erro ao gerar PDF:", err);
+                    showToast("Falha ao gerar o PDF.", 4000);
+                });
+            };
 
             // --- Manipulação de Modais ---
             const openModal = (modalId) => {
@@ -1275,9 +1397,14 @@
 
             // --- Função Geral de Renderização ---
             const renderAll = () => {
-                renderSummary(); renderMonthlyTables(); renderPlanningAll();
-                renderGoalSection(); renderContasAPagar(); renderPessoasDevendo();
-                renderOrUpdateDashboardChart(); renderReportSectionCharts();
+                renderSummary();
+                renderMonthlyTables();
+                renderPlanningTable();
+                renderGoalSection();
+                renderContasAPagar();
+                renderPessoasDevendo();
+                renderOrUpdateDashboardChart();
+                renderReportSectionCharts();
             };
             
             const setupDateButtons = () => {
@@ -1306,42 +1433,77 @@
                     });
                 });
             };
-
-            // --- Inicialização ---
+            
+            // --- INICIALIZAÇÃO E LISTENERS DE EVENTOS ---
             const initializeApp = () => {
-                console.log("Initializing Responsive Finance App v10.3...");
+                console.log("Initializing Responsive Finance App v10.5...");
                 loadData();
-                Object.values(contentSections).forEach(section => { if (section) { section.style.display = 'none'; section.classList.remove('active'); } });
-                if (contentSections.dashboard) { contentSections.dashboard.style.display = 'block'; contentSections.dashboard.classList.add('active'); }
-                navLinks.forEach(l => l.classList.remove('active'));
-                const dashboardLink = document.querySelector('.nav-link[data-section="dashboard"]'); if (dashboardLink) dashboardLink.classList.add('active');
-                
-                setupDateButtons();
                 renderAll();
+                setupDateButtons();
 
-                // Listeners
+                // Listeners de Abertura de Modal e Ações Globais
                 if (menuToggleBtn) menuToggleBtn.addEventListener('click', toggleMenu);
                 if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
                 if (addTransactionBtn) addTransactionBtn.addEventListener('click', () => openModal('add-transaction-modal'));
-                if (transactionForm) transactionForm.addEventListener('submit', handleAddTransaction);
                 if (addPlanItemBtn) addPlanItemBtn.addEventListener('click', () => openModal('add-plan-item-modal'));
-                if (planItemForm) planItemForm.addEventListener('submit', handleAddPlanItem);
                 if (clearPlanBtn) clearPlanBtn.addEventListener('click', handleClearPlan);
                 if (addGoalBtn) addGoalBtn.addEventListener('click', () => openModal('add-goal-modal'));
-                if (addGoalForm) addGoalForm.addEventListener('submit', handleAddGoal);
                 if (removeGoalBtn) removeGoalBtn.addEventListener('click', handleRemoveGoal);
                 if (addContaBtn) addContaBtn.addEventListener('click', () => openModal('add-conta-modal'));
-                if (addContaForm) addContaForm.addEventListener('submit', handleAddContaSubmit);
                 if (addPessoaDevendoBtn) addPessoaDevendoBtn.addEventListener('click', () => openModal('add-pessoa-devendo-modal'));
+
+                // Listeners de Submissão de Formulários
+                if (transactionForm) transactionForm.addEventListener('submit', handleAddTransaction);
+                if (planItemForm) planItemForm.addEventListener('submit', handleAddPlanItem);
+                if (addGoalForm) addGoalForm.addEventListener('submit', handleAddGoal);
+                if (addContaForm) addContaForm.addEventListener('submit', handleAddContaSubmit);
                 if (addPessoaDevendoForm) addPessoaDevendoForm.addEventListener('submit', handleAddPessoaDevendoSubmit);
-                document.querySelectorAll('.close-modal-btn').forEach(button => { button.addEventListener('click', (e) => { const modalId = e.target.dataset.modalId; if (modalId) closeModal(modalId); }); });
-                document.querySelectorAll('.modal').forEach(modal => { modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal.id); }); });
+
+                // Listeners Globais (Modais e Navegação)
+                document.body.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('close-modal-btn')) {
+                        const modalId = e.target.dataset.modalId;
+                        if (modalId) closeModal(modalId);
+                    }
+                    if (e.target.classList.contains('modal')) {
+                        closeModal(e.target.id);
+                    }
+                });
                 navLinks.forEach(link => link.addEventListener('click', handleNavClick));
-                console.log("App Initialized.");
+
+                // DELEGAÇÃO DE EVENTOS PARA AÇÕES NAS TABELAS (CORREÇÃO PRINCIPAL)
+                if (historySectionContainer) historySectionContainer.addEventListener('click', (e) => {
+                    const deleteBtn = e.target.closest('.delete-btn');
+                    if (deleteBtn) handleDeleteTransaction(deleteBtn);
+                });
+                if (planningTbody) planningTbody.addEventListener('click', (e) => {
+                    const deleteBtn = e.target.closest('.delete-plan-item-btn');
+                    if (deleteBtn) handleDeletePlanItem(deleteBtn);
+                });
+                if (savingsGridEl) savingsGridEl.addEventListener('click', (e) => {
+                    const square = e.target.closest('.savings-square');
+                    if (square) handleSquareClick(square);
+                });
+                if (contasTbody) contasTbody.addEventListener('click', (e) => {
+                    const paidBtn = e.target.closest('.mark-paid-btn');
+                    const deleteBtn = e.target.closest('.delete-conta-btn');
+                    if (paidBtn) handleMarkAsPaidClick(paidBtn);
+                    if (deleteBtn) handleDeleteContaClick(deleteBtn);
+                });
+                if (pessoasDevendoTbody) pessoasDevendoTbody.addEventListener('click', (e) => {
+                    const receivedBtn = e.target.closest('.mark-received-btn');
+                    const pdfBtn = e.target.closest('.download-pdf-btn');
+                    const deleteBtn = e.target.closest('.delete-debtor-btn');
+                    if (receivedBtn) handleMarkAsReceivedClick(receivedBtn);
+                    if (pdfBtn) handleDownloadPdfClick(pdfBtn);
+                    if (deleteBtn) handleDeleteDebtorClick(deleteBtn);
+                });
+                console.log("App Initialized Successfully.");
             };
+
             initializeApp();
         });
     </script>
-
 </body>
 </html>
+```
