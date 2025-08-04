@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciador Financeiro v10.7 - Pagamentos Parciais</title> <!-- Versão Atualizada -->
+    <title>Gerenciador Financeiro v10.8 - Itens Negativos</title> <!-- Versão Atualizada -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -234,8 +234,11 @@
         .add-debt-item-btn:hover { background-color: #555; color: #fff; border-color: #888; }
         #debtor-total-amount-display {
             text-align: right; font-size: 1.2em; font-weight: bold; margin-top: -10px; margin-bottom: 20px;
-            color: #3fb950;
+            color: #e0e0e0;
         }
+        #debtor-total-amount-display.positive { color: #3fb950; }
+        #debtor-total-amount-display.negative { color: #f85149; }
+
         /* Modal de Pagamento Parcial */
         .payment-info { background-color: #444; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
         .payment-info strong { color: #f39c12; }
@@ -781,15 +784,15 @@
             const addGoalForm = getElement('add-goal-form');
             const addContaForm = getElement('add-conta-form');
             const addPessoaDevendoForm = getElement('add-pessoa-devendo-form');
-            const paymentForm = getElement('payment-form'); // Novo form de pagamento
+            const paymentForm = getElement('payment-form'); 
 
             // --- Constantes ---
             const STORAGE_KEYS = {
-                transactions: 'financeTransactions_v10.7',
-                planning: 'financePlanningItems_v10.7',
-                goal: 'financeCurrentGoal_v10.7',
-                bills: 'financeContasAPagar_v10.7',
-                debtors: 'financeDebtors_v10.7' // Versão atualizada
+                transactions: 'financeTransactions_v10.8',
+                planning: 'financePlanningItems_v10.8',
+                goal: 'financeCurrentGoal_v10.8',
+                bills: 'financeContasAPagar_v10.8',
+                debtors: 'financeDebtors_v10.8'
             };
             const monthNamesPtBr = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
             const monthNamesFullPtBr = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -1355,7 +1358,7 @@
                 } else { showToast("Erro: Conta não encontrada."); }
             };
             
-            // Funções para Múltiplos Itens de Dívida
+            // --- Funções para Múltiplos Itens de Dívida (MODIFICADO) ---
             const createDebtItemElement = () => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'debt-item';
@@ -1364,7 +1367,7 @@
                         <input type="text" class="modal-input debt-item-description-input" placeholder="Descrição do item" required maxlength="100">
                     </div>
                     <div class="debt-item-amount">
-                        <input type="number" class="modal-input debt-item-amount-input" placeholder="0.00" required step="0.01" min="0.01">
+                        <input type="number" class="modal-input debt-item-amount-input" placeholder="Valor (+/-)" required step="0.01">
                     </div>
                     <button type="button" class="remove-debt-item-btn" title="Remover item">&times;</button>
                 `;
@@ -1375,11 +1378,19 @@
                 let total = 0;
                 debtItemsContainer.querySelectorAll('.debt-item-amount-input').forEach(input => {
                     const value = parseFloat(input.value);
-                    if (!isNaN(value) && value > 0) {
+                    // MODIFICADO: Aceita valores positivos e negativos, ignorando apenas o que não for número
+                    if (!isNaN(value)) {
                         total += value;
                     }
                 });
                 debtorTotalAmountDisplay.textContent = `Total: ${formatCurrency(total)}`;
+                // MODIFICADO: Adiciona classe para feedback visual do total
+                debtorTotalAmountDisplay.classList.remove('positive', 'negative');
+                if (total > 0) {
+                    debtorTotalAmountDisplay.classList.add('positive');
+                } else if (total < 0) {
+                    debtorTotalAmountDisplay.classList.add('negative');
+                }
             };
 
             const handleAddPessoaDevendoSubmit = (e) => {
@@ -1396,15 +1407,21 @@
                 debtItemsContainer.querySelectorAll('.debt-item').forEach(itemEl => {
                     const description = itemEl.querySelector('.debt-item-description-input').value.trim();
                     const amount = parseFloat(itemEl.querySelector('.debt-item-amount-input').value);
-                    if (description && !isNaN(amount) && amount > 0) {
+                    // MODIFICADO: Aceita valores negativos, mas não zero
+                    if (description && !isNaN(amount) && amount !== 0) {
                         items.push({ description, amount });
-                    } else {
+                    } else if (description || (!isNaN(amount) && amount !== 0)) {
+                        // Marca como inválido se um campo estiver preenchido mas o outro não, ou se for zero
                         isValid = false;
                     }
                 });
 
-                if (!isValid || items.length === 0) {
-                    showToast('Erro: Preencha todos os itens da dívida corretamente (descrição e valor).', 4000);
+                if (!isValid) {
+                    showToast('Erro: Preencha todos os itens da dívida corretamente (descrição e valor diferente de zero).', 4000);
+                    return;
+                }
+                if (items.length === 0) {
+                    showToast('Erro: Adicione pelo menos um item à dívida.', 4000);
                     return;
                 }
                 
@@ -1416,8 +1433,8 @@
                     loanDate: dateInput.value,
                     items: items,
                     amount: totalAmount,
-                    isPaid: false,
-                    payments: [] // <-- NOVO: Array para pagamentos parciais
+                    isPaid: totalAmount <= 0, // Dívida já nasce paga se o total for 0 ou negativo
+                    payments: []
                 };
                 
                 pessoasDevendo.push(newDebtor);
@@ -1427,7 +1444,6 @@
                 showToast('Devedor adicionado!');
             };
 
-            // NOVO: Abre o modal de pagamento parcial
             const handleAddPaymentClick = (button) => {
                 const debtorId = parseInt(button.dataset.id);
                 const debtor = pessoasDevendo.find(d => d.id === debtorId);
@@ -1447,7 +1463,6 @@
                 openModal('add-payment-modal');
             };
             
-            // NOVO: Processa o formulário de pagamento parcial
             const handlePaymentFormSubmit = (e) => {
                 e.preventDefault();
                 const debtorId = parseInt(getElement('payment-debtor-id').value);
@@ -1468,7 +1483,7 @@
                     showToast('Erro: O valor do pagamento deve ser positivo.');
                     return;
                 }
-                if (paymentAmount > remainingAmount + 0.001) { // Adiciona tolerância para float
+                if (paymentAmount > remainingAmount + 0.001) { 
                     showToast(`Erro: O pagamento não pode ser maior que o valor restante de ${formatCurrency(remainingAmount)}.`);
                     return;
                 }
@@ -1501,13 +1516,18 @@
                     const remainingAmount = debtor.amount - totalPaid;
 
                     if (remainingAmount <= 0) {
+                        debtor.isPaid = true;
+                        saveData(STORAGE_KEYS.debtors, pessoasDevendo);
+                        renderPessoasDevendo();
                         showToast("Esta dívida já foi totalmente paga.");
                         return;
                     }
                     
                     if (confirm(`Confirmar o recebimento do valor restante de ${formatCurrency(remainingAmount)} para ${debtor.name}?`)) {
                         if (!debtor.payments) debtor.payments = [];
-                        debtor.payments.push({ amount: remainingAmount, date: new Date().toISOString().split('T')[0] });
+                        if (remainingAmount > 0) {
+                           debtor.payments.push({ amount: remainingAmount, date: new Date().toISOString().split('T')[0] });
+                        }
                         debtor.isPaid = true;
                         saveData(STORAGE_KEYS.debtors, pessoasDevendo);
                         renderPessoasDevendo();
@@ -1677,7 +1697,7 @@
             
             // --- INICIALIZAÇÃO E LISTENERS DE EVENTOS ---
             const initializeApp = () => {
-                console.log("Initializing Responsive Finance App v10.7...");
+                console.log("Initializing Responsive Finance App v10.8...");
                 loadData();
                 renderAll();
                 setupDateButtons();
@@ -1699,7 +1719,7 @@
                 if (addGoalForm) addGoalForm.addEventListener('submit', handleAddGoal);
                 if (addContaForm) addContaForm.addEventListener('submit', handleAddContaSubmit);
                 if (addPessoaDevendoForm) addPessoaDevendoForm.addEventListener('submit', handleAddPessoaDevendoSubmit);
-                if (paymentForm) paymentForm.addEventListener('submit', handlePaymentFormSubmit); // NOVO
+                if (paymentForm) paymentForm.addEventListener('submit', handlePaymentFormSubmit);
 
                 // Listeners Globais
                 document.body.addEventListener('click', (e) => {
@@ -1736,11 +1756,11 @@
                     const receivedBtn = e.target.closest('.mark-received-btn');
                     const pdfBtn = e.target.closest('.download-pdf-btn');
                     const deleteBtn = e.target.closest('.delete-debtor-btn');
-                    const paymentBtn = e.target.closest('.add-payment-btn'); // NOVO
+                    const paymentBtn = e.target.closest('.add-payment-btn');
                     if (receivedBtn) handleMarkAsReceivedClick(receivedBtn);
                     if (pdfBtn) handleDownloadPdfClick(pdfBtn);
                     if (deleteBtn) handleDeleteDebtorClick(deleteBtn);
-                    if (paymentBtn) handleAddPaymentClick(paymentBtn); // NOVO
+                    if (paymentBtn) handleAddPaymentClick(paymentBtn);
                 });
                 if(addDebtItemBtn) addDebtItemBtn.addEventListener('click', () => {
                     debtItemsContainer.appendChild(createDebtItemElement());
@@ -1765,3 +1785,4 @@
 </body>
 </html>
 ```
+316,5s
