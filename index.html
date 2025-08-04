@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciador Financeiro v10.6 - Múltiplos Itens</title> <!-- Versão Atualizada -->
+    <title>Gerenciador Financeiro v10.7 - Pagamentos Parciais</title> <!-- Versão Atualizada -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -153,9 +153,13 @@
         .pessoas-devendo-table tbody tr.paid td { color: #777; }
         .pessoas-devendo-table tbody tr.paid .amount { color: #5a9e63; }
         .pessoas-devendo-table tbody tr.overdue { background-color: rgba(243, 156, 18, 0.08); border-left: 3px solid #f39c12; }
-        .mark-received-btn { color: #3fb950 !important; }
+        .mark-received-btn { color: #3fb950 !important; } /* Pagar o restante */
         .mark-received-btn:hover { color: #5ae470 !important; transform: scale(1.2); }
+        .add-payment-btn { color: #f39c12 !important; } /* Pagamento parcial */
+        .add-payment-btn:hover { color: #f5b041 !important; transform: scale(1.2); }
         .delete-debtor-btn:hover { color: #f85149 !important; }
+        .amount-breakdown { font-size: 0.8em; color: #999; display: block; }
+        .paid .amount-breakdown { color: #777; }
 
         /* --- Relatório --- */
         #relatorio-content h3.report-month-title { font-size: 1.3em; color: #e0e0e0; margin-bottom: 20px; font-weight: 600; border-bottom: 1px solid #555; padding-bottom: 10px; }
@@ -202,6 +206,8 @@
         #add-conta-form button[type="submit"]:hover { background: linear-gradient(135deg, #c0392b, #a93226); }
         #add-pessoa-devendo-form button[type="submit"] { background: linear-gradient(135deg, #2ecc71, #27ae60); }
         #add-pessoa-devendo-form button[type="submit"]:hover { background: linear-gradient(135deg, #27ae60, #229954); }
+        #payment-form button[type="submit"] { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        #payment-form button[type="submit"]:hover { background: linear-gradient(135deg, #e67e22, #d35400); }
         .modal button[type="submit"] { color: white; padding: 14px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: 600; width: 100%; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease; margin-top: 15px; }
         .modal button[type="submit"]:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4); }
 
@@ -230,6 +236,9 @@
             text-align: right; font-size: 1.2em; font-weight: bold; margin-top: -10px; margin-bottom: 20px;
             color: #3fb950;
         }
+        /* Modal de Pagamento Parcial */
+        .payment-info { background-color: #444; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+        .payment-info strong { color: #f39c12; }
 
         /* --- Toast Notification --- */
         .toast-notification { position: fixed; bottom: 25px; right: 25px; background-color: #282828; color: #e0e0e0; padding: 14px 22px; border-radius: 8px; border-left: 4px solid #58a6ff; box-shadow: 0 6px 20px rgba(0,0,0,0.4); z-index: 1001; opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease; transform: translateX(20px); }
@@ -268,7 +277,12 @@
         .invoice-table .item-amount { text-align: right; font-weight: bold; font-size: 16px; }
         .invoice-totals { display: flex; justify-content: flex-end; }
         .invoice-totals table { width: 300px; text-align: right; line-height: 1.8; }
+        .invoice-totals .subtotal-row td { font-size: 14px; }
         .invoice-totals .total-row td { font-weight: bold; font-size: 22px; padding-top: 10px; border-top: 2px solid #333; }
+        #invoice-payments-section { margin-top: 40px; }
+        #invoice-payments-section h3 { font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 10px; }
+        #invoice-payments-table { width: 100%; text-align: left; font-size: 14px; line-height: 1.6; }
+
 
         @media (max-width: 800px) {
             body { display: block; }
@@ -427,7 +441,7 @@
                          <h3>Lista de Devedores</h3>
                     </div>
                     <table class="pessoas-devendo-table data-table">
-                        <thead><tr><th>Nome</th><th>Valor</th><th>Data Empréstimo</th><th>Status</th><th>Ações</th></tr></thead>
+                        <thead><tr><th>Nome</th><th>Valor (Restante / Total)</th><th>Data Empréstimo</th><th>Status</th><th>Ações</th></tr></thead>
                         <tbody id="pessoas-devendo-tbody"></tbody>
                     </table>
                     <div id="no-pessoas-devendo-message" class="no-data-message" style="display: none;">
@@ -512,11 +526,16 @@
         <div class="invoice-totals">
             <table>
                 <tbody>
-                    <tr class="total-row">
-                        <td>TOTAL</td>
-                        <td id="invoice-total">R$ 0,00</td>
-                    </tr>
+                    <tr class="subtotal-row"><td>Subtotal</td><td id="invoice-subtotal">R$ 0,00</td></tr>
+                    <tr class="subtotal-row"><td>Valor Pago</td><td id="invoice-paid-amount">R$ 0,00</td></tr>
+                    <tr class="total-row"><td>Restante</td><td id="invoice-total">R$ 0,00</td></tr>
                 </tbody>
+            </table>
+        </div>
+        <div id="invoice-payments-section">
+            <h3>Histórico de Pagamentos</h3>
+            <table id="invoice-payments-table">
+                <!-- Pagamentos serão inseridos aqui -->
             </table>
         </div>
     </div>
@@ -652,6 +671,26 @@
             </form>
         </div>
     </div>
+    <!-- NOVO MODAL DE PAGAMENTO -->
+    <div id="add-payment-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal-btn" data-modal-id="add-payment-modal">&times;</span>
+            <h2>Registrar Pagamento</h2>
+            <form id="payment-form" novalidate>
+                <input type="hidden" id="payment-debtor-id">
+                <div class="payment-info">
+                    Pagando para: <strong id="payment-modal-debtor-name">---</strong>
+                </div>
+                <div class="form-group">
+                    <label for="payment-amount">Valor do Pagamento:</label>
+                    <input type="number" id="payment-amount" step="0.01" placeholder="0.00" required min="0.01">
+                    <small id="payment-modal-remaining-amount">Restante: R$ 0,00</small>
+                </div>
+                <button type="submit">Confirmar Pagamento</button>
+            </form>
+        </div>
+    </div>
+
 
     <!-- Toast -->
     <div id="toast-notification" class="toast-notification">Msg</div>
@@ -742,14 +781,15 @@
             const addGoalForm = getElement('add-goal-form');
             const addContaForm = getElement('add-conta-form');
             const addPessoaDevendoForm = getElement('add-pessoa-devendo-form');
+            const paymentForm = getElement('payment-form'); // Novo form de pagamento
 
             // --- Constantes ---
             const STORAGE_KEYS = {
-                transactions: 'financeTransactions_v10.6',
-                planning: 'financePlanningItems_v10.6',
-                goal: 'financeCurrentGoal_v10.6',
-                bills: 'financeContasAPagar_v10.6',
-                debtors: 'financeDebtors_v10.6'
+                transactions: 'financeTransactions_v10.7',
+                planning: 'financePlanningItems_v10.7',
+                goal: 'financeCurrentGoal_v10.7',
+                bills: 'financeContasAPagar_v10.7',
+                debtors: 'financeDebtors_v10.7' // Versão atualizada
             };
             const monthNamesPtBr = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
             const monthNamesFullPtBr = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -1090,19 +1130,32 @@
 
                 sortedDebtors.forEach(debtor => {
                     if (typeof debtor.amount !== 'number' || isNaN(debtor.amount)) return;
+                    
+                    const totalPaid = (debtor.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                    const remainingAmount = debtor.amount - totalPaid;
+
                     const tr = document.createElement('tr');
                     let statusText = 'Pendente';
                     let rowClass = 'overdue';
-                    if (debtor.isPaid) { statusText = 'Recebido'; rowClass = 'paid'; }
+                    if (debtor.isPaid) { 
+                        statusText = 'Recebido'; 
+                        rowClass = 'paid'; 
+                    } else if (totalPaid > 0) {
+                        statusText = 'Parcialmente Pago';
+                    }
 
                     tr.className = rowClass;
                     tr.innerHTML = `
                         <td>${escapeHtml(debtor.name)}</td>
-                        <td class="amount">${formatCurrency(debtor.amount)}</td>
+                        <td class="amount">
+                            ${formatCurrency(remainingAmount)}
+                            <span class="amount-breakdown">de ${formatCurrency(debtor.amount)}</span>
+                        </td>
                         <td>${formatDate(debtor.loanDate)}</td>
                         <td>${statusText}</td>
                         <td class="actions">
-                            ${!debtor.isPaid ? `<button class="mark-received-btn" data-id="${debtor.id}" title="Marcar como Recebido">✔️</button>` : ''}
+                            ${!debtor.isPaid ? `<button class="add-payment-btn" data-id="${debtor.id}" title="Registrar Pagamento Parcial">💰</button>` : ''}
+                            ${!debtor.isPaid ? `<button class="mark-received-btn" data-id="${debtor.id}" title="Pagar Valor Restante">✔️</button>` : ''}
                             <button class="download-pdf-btn" data-id="${debtor.id}" title="Baixar PDF da Cobrança">📄</button>
                             <button class="delete-debtor-btn" data-id="${debtor.id}" title="Excluir Registro">🗑️</button>
                         </td>`;
@@ -1362,8 +1415,9 @@
                     name: nameInput.value.trim(),
                     loanDate: dateInput.value,
                     items: items,
-                    amount: totalAmount, // Armazena o total para fácil acesso
-                    isPaid: false
+                    amount: totalAmount,
+                    isPaid: false,
+                    payments: [] // <-- NOVO: Array para pagamentos parciais
                 };
                 
                 pessoasDevendo.push(newDebtor);
@@ -1372,14 +1426,93 @@
                 closeModal('add-pessoa-devendo-modal');
                 showToast('Devedor adicionado!');
             };
+
+            // NOVO: Abre o modal de pagamento parcial
+            const handleAddPaymentClick = (button) => {
+                const debtorId = parseInt(button.dataset.id);
+                const debtor = pessoasDevendo.find(d => d.id === debtorId);
+                if (!debtor) {
+                    showToast('Erro: Devedor não encontrado.');
+                    return;
+                }
+                const totalPaid = (debtor.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                const remainingAmount = debtor.amount - totalPaid;
+
+                getElement('payment-debtor-id').value = debtorId;
+                getElement('payment-modal-debtor-name').textContent = debtor.name;
+                getElement('payment-modal-remaining-amount').textContent = `Restante: ${formatCurrency(remainingAmount)}`;
+                getElement('payment-amount').value = '';
+                getElement('payment-amount').max = remainingAmount.toFixed(2);
+
+                openModal('add-payment-modal');
+            };
+            
+            // NOVO: Processa o formulário de pagamento parcial
+            const handlePaymentFormSubmit = (e) => {
+                e.preventDefault();
+                const debtorId = parseInt(getElement('payment-debtor-id').value);
+                const paymentAmountInput = getElement('payment-amount');
+                const paymentAmount = parseFloat(paymentAmountInput.value);
+
+                const debtorIndex = pessoasDevendo.findIndex(d => d.id === debtorId);
+                if (debtorIndex === -1) {
+                    showToast('Erro: Devedor não encontrado.');
+                    return;
+                }
+
+                const debtor = pessoasDevendo[debtorIndex];
+                const totalPaid = (debtor.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                const remainingAmount = debtor.amount - totalPaid;
+
+                if (isNaN(paymentAmount) || paymentAmount <= 0) {
+                    showToast('Erro: O valor do pagamento deve ser positivo.');
+                    return;
+                }
+                if (paymentAmount > remainingAmount + 0.001) { // Adiciona tolerância para float
+                    showToast(`Erro: O pagamento não pode ser maior que o valor restante de ${formatCurrency(remainingAmount)}.`);
+                    return;
+                }
+
+                if (!debtor.payments) {
+                    debtor.payments = [];
+                }
+                debtor.payments.push({
+                    amount: paymentAmount,
+                    date: new Date().toISOString().split('T')[0]
+                });
+
+                const newTotalPaid = totalPaid + paymentAmount;
+                if (newTotalPaid >= debtor.amount - 0.001) {
+                    debtor.isPaid = true;
+                }
+
+                saveData(STORAGE_KEYS.debtors, pessoasDevendo);
+                renderPessoasDevendo();
+                closeModal('add-payment-modal');
+                showToast(`Pagamento de ${formatCurrency(paymentAmount)} registrado para ${debtor.name}.`);
+            };
+
             const handleMarkAsReceivedClick = (button) => {
                 const debtorId = parseInt(button.dataset.id); if (isNaN(debtorId)) return;
                 const debtorIndex = pessoasDevendo.findIndex(d => d.id === debtorId);
                 if (debtorIndex > -1) {
-                    pessoasDevendo[debtorIndex].isPaid = true;
-                    saveData(STORAGE_KEYS.debtors, pessoasDevendo);
-                    renderPessoasDevendo();
-                    showToast(`Valor de ${escapeHtml(pessoasDevendo[debtorIndex].name)} recebido.`);
+                    const debtor = pessoasDevendo[debtorIndex];
+                    const totalPaid = (debtor.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                    const remainingAmount = debtor.amount - totalPaid;
+
+                    if (remainingAmount <= 0) {
+                        showToast("Esta dívida já foi totalmente paga.");
+                        return;
+                    }
+                    
+                    if (confirm(`Confirmar o recebimento do valor restante de ${formatCurrency(remainingAmount)} para ${debtor.name}?`)) {
+                        if (!debtor.payments) debtor.payments = [];
+                        debtor.payments.push({ amount: remainingAmount, date: new Date().toISOString().split('T')[0] });
+                        debtor.isPaid = true;
+                        saveData(STORAGE_KEYS.debtors, pessoasDevendo);
+                        renderPessoasDevendo();
+                        showToast(`Valor de ${escapeHtml(debtor.name)} recebido integralmente.`);
+                    }
                 } else { showToast("Erro: Devedor não encontrado."); }
             };
             const handleDeleteDebtorClick = (button) => {
@@ -1400,7 +1533,9 @@
                 if (!debtor) { showToast("Erro: Devedor não encontrado."); return; }
                 showToast("Gerando PDF...", 2000);
                 
-                // Preencher template
+                const totalPaid = (debtor.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                const remainingAmount = debtor.amount - totalPaid;
+
                 const invoiceTemplate = getElement('pdf-invoice-template');
                 getElement('invoice-status').textContent = debtor.isPaid ? 'Recebido' : 'Em Aberto';
                 getElement('invoice-status').className = debtor.isPaid ? 'status-paid' : 'status-unpaid';
@@ -1409,17 +1544,28 @@
                 getElement('invoice-bill-to-name').textContent = escapeHtml(debtor.name);
                 
                 const itemsBody = getElement('invoice-items-body');
-                itemsBody.innerHTML = ''; // Limpa itens anteriores
+                itemsBody.innerHTML = '';
                 debtor.items.forEach(item => {
                     const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="item-description">${escapeHtml(item.description)}</td>
-                        <td class="item-amount">${formatCurrency(item.amount)}</td>
-                    `;
+                    row.innerHTML = `<td class="item-description">${escapeHtml(item.description)}</td><td class="item-amount">${formatCurrency(item.amount)}</td>`;
                     itemsBody.appendChild(row);
                 });
+                
+                getElement('invoice-subtotal').textContent = formatCurrency(debtor.amount);
+                getElement('invoice-paid-amount').textContent = `-${formatCurrency(totalPaid)}`;
+                getElement('invoice-total').textContent = formatCurrency(remainingAmount);
 
-                getElement('invoice-total').textContent = formatCurrency(debtor.amount);
+                const paymentsTable = getElement('invoice-payments-table');
+                paymentsTable.innerHTML = '';
+                if(debtor.payments && debtor.payments.length > 0) {
+                     getElement('invoice-payments-section').style.display = 'block';
+                     debtor.payments.forEach(p => {
+                        const row = paymentsTable.insertRow();
+                        row.innerHTML = `<td>Pagamento em ${formatDate(p.date)}</td><td style="text-align: right;">${formatCurrency(p.amount)}</td>`;
+                     });
+                } else {
+                    getElement('invoice-payments-section').style.display = 'none';
+                }
 
                 html2canvas(invoiceTemplate, { scale: 2 }).then(canvas => {
                     const imgData = canvas.toDataURL('image/png');
@@ -1531,7 +1677,7 @@
             
             // --- INICIALIZAÇÃO E LISTENERS DE EVENTOS ---
             const initializeApp = () => {
-                console.log("Initializing Responsive Finance App v10.6...");
+                console.log("Initializing Responsive Finance App v10.7...");
                 loadData();
                 renderAll();
                 setupDateButtons();
@@ -1553,6 +1699,7 @@
                 if (addGoalForm) addGoalForm.addEventListener('submit', handleAddGoal);
                 if (addContaForm) addContaForm.addEventListener('submit', handleAddContaSubmit);
                 if (addPessoaDevendoForm) addPessoaDevendoForm.addEventListener('submit', handleAddPessoaDevendoSubmit);
+                if (paymentForm) paymentForm.addEventListener('submit', handlePaymentFormSubmit); // NOVO
 
                 // Listeners Globais
                 document.body.addEventListener('click', (e) => {
@@ -1589,9 +1736,11 @@
                     const receivedBtn = e.target.closest('.mark-received-btn');
                     const pdfBtn = e.target.closest('.download-pdf-btn');
                     const deleteBtn = e.target.closest('.delete-debtor-btn');
+                    const paymentBtn = e.target.closest('.add-payment-btn'); // NOVO
                     if (receivedBtn) handleMarkAsReceivedClick(receivedBtn);
                     if (pdfBtn) handleDownloadPdfClick(pdfBtn);
                     if (deleteBtn) handleDeleteDebtorClick(deleteBtn);
+                    if (paymentBtn) handleAddPaymentClick(paymentBtn); // NOVO
                 });
                 if(addDebtItemBtn) addDebtItemBtn.addEventListener('click', () => {
                     debtItemsContainer.appendChild(createDebtItemElement());
