@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciador Financeiro v10.8 - Itens Negativos</title> <!-- Versão Atualizada -->
+    <title>Gerenciador Financeiro v10.8 - Firebase</title> <!-- Versão Atualizada -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        /* Reset Básico e Configurações Globais */  
+        /* Reset Básico e Configurações Globais */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; }
         body { display: flex; height: 100vh; background-color: #121212; color: #e0e0e0; overflow: hidden; position: relative; }
 
@@ -698,7 +698,28 @@
     <!-- Toast -->
     <div id="toast-notification" class="toast-notification">Msg</div>
 
-    <script>
+    <!-- SCRIPT FIREBASE INTEGRADO -->
+    <script type="module">
+        // Importe as funções que você precisa dos SDKs que você precisa
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, push, remove, update } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+        // A configuração Firebase do seu aplicativo da web
+        const firebaseConfig = {
+            apiKey: "AIzaSyDoa_sleKJ54PW1rq8PkDjeUd-O2KFuWX4",
+            authDomain: "finaceiro-1ef67.firebaseapp.com",
+            databaseURL: "https://finaceiro-1ef67-default-rtdb.firebaseio.com",
+            projectId: "finaceiro-1ef67",
+            storageBucket: "finaceiro-1ef67.firebasestorage.app",
+            messagingSenderId: "370610170217",
+            appId: "1:370610170217:web:18499028e300aaa07ff5f8",
+            measurementId: "G-C7V5MDHGCM"
+        };
+
+        // Inicialize o Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
         document.addEventListener('DOMContentLoaded', () => {
             // --- Seletores DOM Agrupados ---
             const getElement = (id) => document.getElementById(id); // Helper
@@ -784,20 +805,13 @@
             const addGoalForm = getElement('add-goal-form');
             const addContaForm = getElement('add-conta-form');
             const addPessoaDevendoForm = getElement('add-pessoa-devendo-form');
-            const paymentForm = getElement('payment-form'); 
+            const paymentForm = getElement('payment-form');
 
             // --- Constantes ---
-            const STORAGE_KEYS = {
-                transactions: 'financeTransactions_v10.8',
-                planning: 'financePlanningItems_v10.8',
-                goal: 'financeCurrentGoal_v10.8',
-                bills: 'financeContasAPagar_v10.8',
-                debtors: 'financeDebtors_v10.8'
-            };
             const monthNamesPtBr = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
             const monthNamesFullPtBr = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-            // --- Estado ---
+            // --- Estado (será preenchido pelo Firebase) ---
             let transactions = [];
             let planningItems = [];
             let currentGoal = null;
@@ -807,7 +821,7 @@
             let topExpensesChartInstance = null;
             let netWorthChartInstance = null;
 
-            // --- Funções Utilitárias ---
+            // --- Funções Utilitárias (sem alteração) ---
             const formatCurrency = (value) => typeof value === 'number' ? value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00';
             const showToast = (message, duration = 3500) => {
                 if (!toastNotification) return;
@@ -833,17 +847,33 @@
                 return Math.round((utc1 - utc2) / oneDay);
             };
 
-            // --- Persistência de Dados ---
-            const loadData = () => {
-                const loadItem = (key) => { try { return JSON.parse(localStorage.getItem(key)) || []; } catch (e) { console.error(`Error loading ${key}:`, e); return []; } };
-                const loadGoal = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.goal)) || null; } catch (e) { console.error('Error loading goal:', e); return null; } };
-                transactions = loadItem(STORAGE_KEYS.transactions);
-                planningItems = loadItem(STORAGE_KEYS.planning);
-                contasAPagar = loadItem(STORAGE_KEYS.bills);
-                pessoasDevendo = loadItem(STORAGE_KEYS.debtors);
-                currentGoal = loadGoal();
+            // --- Persistência de Dados (Firebase) ---
+            const firebaseDataToObject = (firebaseData) => {
+                if (!firebaseData) return [];
+                return Object.keys(firebaseData).map(key => ({
+                    firebaseId: key, // Salva o ID do Firebase para futuras referências
+                    ...firebaseData[key]
+                }));
+            }
+
+            const initializeFirebaseListeners = () => {
+                const dbRef = ref(database, 'financialData'); // Nó principal para todos os dados deste app
+                
+                onValue(dbRef, (snapshot) => {
+                    const data = snapshot.val();
+                    console.log("Dados recebidos do Firebase:", data);
+
+                    // Converte os objetos do Firebase para arrays que o app entende
+                    transactions = firebaseDataToObject(data?.transactions);
+                    planningItems = firebaseDataToObject(data?.planningItems);
+                    contasAPagar = firebaseDataToObject(data?.contasAPagar);
+                    pessoasDevendo = firebaseDataToObject(data?.pessoasDevendo);
+                    currentGoal = data?.currentGoal || null; // Goal é um objeto único, não uma lista
+
+                    // Renderiza toda a interface com os novos dados
+                    renderAll();
+                });
             };
-            const saveData = (key, data) => { try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) { console.error(`Error saving ${key}:`, e); showToast(`Erro ao salvar dados (${key}).`); } };
             
             // --- Funções de Cálculo Core ---
             const calculateRunningBalances = () => {
@@ -854,7 +884,8 @@
                 const sortedTransactions = [...transactions].sort((a, b) => {
                     const timeA = isValidDateString(a.date) ? new Date(a.date + 'T00:00:00Z').getTime() : 0;
                     const timeB = isValidDateString(b.date) ? new Date(b.date + 'T00:00:00Z').getTime() : 0;
-                    if (timeA === timeB) { return (a.id || 0) - (b.id || 0); }
+                    // Usa o ID do Firebase como desempate, embora seja improvável
+                    if (timeA === timeB) { return (a.firebaseId || '').localeCompare(b.firebaseId || ''); }
                     return timeA - timeB;
                 });
 
@@ -862,12 +893,12 @@
                     if (typeof tx.amount !== 'number' || isNaN(tx.amount)) { return; }
                     const change = (tx.type === 'income' ? tx.amount : -tx.amount);
                     currentBalance += change;
-                    if (tx.id) { balances[tx.id] = currentBalance; }
+                    if (tx.firebaseId) { balances[tx.firebaseId] = currentBalance; }
                     if (isValidDateString(tx.date)) { evolutionData.push({ date: tx.date, balance: currentBalance }); }
                 });
                 return { transactionBalances: balances, evolutionData: evolutionData };
             };
-             const groupTransactionsByMonth = () => {
+            const groupTransactionsByMonth = () => {
                  const grouped = {};
                  transactions.forEach(tx => {
                      if (isValidDateString(tx.date)) {
@@ -877,9 +908,9 @@
                      }
                  });
                  return grouped;
-             };
+            };
 
-            // --- Funções de Renderização ---
+            // --- Funções de Renderização (Ajustadas para usar firebaseId) ---
 
             // Dashboard: Resumo
             const renderSummary = () => {
@@ -933,7 +964,7 @@
                     monthTransactions.sort((a, b) => {
                         const timeA = isValidDateString(a.date) ? new Date(a.date + 'T00:00:00Z').getTime() : 0;
                         const timeB = isValidDateString(b.date) ? new Date(b.date + 'T00:00:00Z').getTime() : 0;
-                        if (timeB === timeA) return (b.id || 0) - (a.id || 0);
+                        if (timeB === timeA) return (b.firebaseId || '').localeCompare(a.firebaseId || '');
                         return timeB - timeA;
                     }).forEach(tx => {
                         const tr = document.createElement('tr');
@@ -941,7 +972,7 @@
                         const amountClass = isExpense ? 'expense' : 'income';
                         const typeText = isExpense ? 'Saída' : 'Entrada';
                         const typeClass = isExpense ? 'type-expense' : 'type-income';
-                        const transactionBalance = transactionBalances[tx.id] ?? '---';
+                        const transactionBalance = transactionBalances[tx.firebaseId] ?? '---';
                         const formattedDate = formatDate(tx.date).substring(0, 5);
                         tr.innerHTML = `
                             <td>${formattedDate}</td>
@@ -949,7 +980,7 @@
                             <td class="amount ${amountClass}"><span class="amount-value">${formatCurrency(tx.amount)}</span></td>
                             <td class="type"><span class="${typeClass}">${typeText}</span></td>
                             <td>${formatCurrency(transactionBalance)}</td>
-                            <td class="actions"><button class="delete-btn" data-id="${tx.id}" title="Excluir">🗑️</button></td>`;
+                            <td class="actions"><button class="delete-btn" data-id="${tx.firebaseId}" title="Excluir">🗑️</button></td>`;
                         tbody.appendChild(tr);
                     });
                     monthContainer.appendChild(table);
@@ -983,7 +1014,7 @@
                             <td class="plan-income-col ${incomeValue > 0 ? 'has-value' : ''}">${formatCurrency(incomeValue)}</td>
                             <td class="plan-expense-col ${expenseValue > 0 ? 'has-value' : ''}">${formatCurrency(expenseValue)}</td>
                             <td>${formatCurrency(runningPlannedTotal)}</td>
-                            <td class="actions"><button class="delete-plan-item-btn" data-id="${item.id}" title="Remover Item do Plano">🗑️</button></td>`;
+                            <td class="actions"><button class="delete-plan-item-btn" data-id="${item.firebaseId}" title="Remover Item do Plano">🗑️</button></td>`;
                         planningTbody.appendChild(tr);
                     });
                 }
@@ -1106,8 +1137,8 @@
                         <td>${escapeHtml(conta.description)}</td><td class="amount">${formatCurrency(conta.amount)}</td>
                         <td class="due-date ${dueDateTextClass}">${formatDate(conta.dueDate)}</td><td>${statusText}</td>
                         <td class="actions">
-                            ${!conta.isPaid ? `<button class="mark-paid-btn" data-id="${conta.id}" title="Marcar como Pago">✔️</button>` : ''}
-                            <button class="delete-conta-btn" data-id="${conta.id}" title="Excluir Conta">🗑️</button>
+                            ${!conta.isPaid ? `<button class="mark-paid-btn" data-id="${conta.firebaseId}" title="Marcar como Pago">✔️</button>` : ''}
+                            <button class="delete-conta-btn" data-id="${conta.firebaseId}" title="Excluir Conta">🗑️</button>
                         </td>`;
                     contasTbody.appendChild(tr);
                 });
@@ -1157,16 +1188,16 @@
                         <td>${formatDate(debtor.loanDate)}</td>
                         <td>${statusText}</td>
                         <td class="actions">
-                            ${!debtor.isPaid ? `<button class="add-payment-btn" data-id="${debtor.id}" title="Registrar Pagamento Parcial">💰</button>` : ''}
-                            ${!debtor.isPaid ? `<button class="mark-received-btn" data-id="${debtor.id}" title="Pagar Valor Restante">✔️</button>` : ''}
-                            <button class="download-pdf-btn" data-id="${debtor.id}" title="Baixar PDF da Cobrança">📄</button>
-                            <button class="delete-debtor-btn" data-id="${debtor.id}" title="Excluir Registro">🗑️</button>
+                            ${!debtor.isPaid ? `<button class="add-payment-btn" data-id="${debtor.firebaseId}" title="Registrar Pagamento Parcial">💰</button>` : ''}
+                            ${!debtor.isPaid ? `<button class="mark-received-btn" data-id="${debtor.firebaseId}" title="Pagar Valor Restante">✔️</button>` : ''}
+                            <button class="download-pdf-btn" data-id="${debtor.firebaseId}" title="Baixar PDF da Cobrança">📄</button>
+                            <button class="delete-debtor-btn" data-id="${debtor.firebaseId}" title="Excluir Registro">🗑️</button>
                         </td>`;
                     pessoasDevendoTbody.appendChild(tr);
                 });
             };
 
-            // --- Funções de Renderização de Gráficos ---
+            // --- Funções de Renderização de Gráficos (sem alteração) ---
             const renderOrUpdateDashboardChart = () => {
                 if (!historyChartCanvas || !contentSections.dashboard?.classList.contains('active')) { return; }
                 const ctx = historyChartCanvas.getContext('2d'); if (!ctx) return;
@@ -1193,7 +1224,7 @@
                     if (txTime < startDateTime) { startingBalance += (tx.type === 'income' ? tx.amount : -tx.amount); }
                 });
                 let runningBalance = startingBalance;
-                const sortedTxForPeriod = [...transactions].filter(tx => { if (!isValidDateString(tx.date) || typeof tx.amount !== 'number' || isNaN(tx.amount)) return false; const txTime = new Date(tx.date + 'T00:00:00Z').getTime(); return txTime >= startDateTime && txTime <= endDateTime; }).sort((a, b) => { const timeA = new Date(a.date + 'T00:00:00Z').getTime(); const timeB = new Date(b.date + 'T00:00:00Z').getTime(); if (timeA === timeB) return (a.id || 0) - (b.id || 0); return timeA - timeB; });
+                const sortedTxForPeriod = [...transactions].filter(tx => { if (!isValidDateString(tx.date) || typeof tx.amount !== 'number' || isNaN(tx.amount)) return false; const txTime = new Date(tx.date + 'T00:00:00Z').getTime(); return txTime >= startDateTime && txTime <= endDateTime; }).sort((a, b) => { const timeA = new Date(a.date + 'T00:00:00Z').getTime(); const timeB = new Date(b.date + 'T00:00:00Z').getTime(); if (timeA === timeB) return (a.firebaseId || '').localeCompare(b.firebaseId || ''); return timeA - timeB; });
                 sortedTxForPeriod.forEach(tx => { runningBalance += (tx.type === 'income' ? tx.amount : -tx.amount); balancesPerDay[tx.date] = runningBalance; });
                 let lastKnownBalance = startingBalance;
                 for (let d = new Date(startDate); d.getTime() <= endDate.getTime(); d.setUTCDate(d.getUTCDate() + 1)) {
@@ -1259,36 +1290,88 @@
                  }
             };
             
-            // --- Handlers de Eventos ---
+            // --- Handlers de Eventos (Modificados para o Firebase) ---
             const handleDeleteTransaction = (button) => {
-                const transactionId = parseInt(button.dataset.id);
-                if (isNaN(transactionId)) return;
-                const txIndex = transactions.findIndex(tx => tx.id === transactionId);
-                if (txIndex === -1) { showToast("Erro: Movimentação não encontrada."); return; }
-                if (confirm(`Tem certeza que deseja excluir "${escapeHtml(transactions[txIndex].description)}"?`)) {
-                    transactions.splice(txIndex, 1);
-                    saveData(STORAGE_KEYS.transactions, transactions);
-                    renderAll();
-                    showToast('Movimentação excluída.');
+                const transactionId = button.dataset.id; // Agora é uma string (ID do Firebase)
+                if (!transactionId) return;
+                
+                const txToDelete = transactions.find(tx => tx.firebaseId === transactionId);
+                if (!txToDelete) { showToast("Erro: Movimentação não encontrada."); return; }
+                
+                if (confirm(`Tem certeza que deseja excluir "${escapeHtml(txToDelete.description)}"?`)) {
+                    remove(ref(database, `financialData/transactions/${transactionId}`))
+                        .then(() => showToast('Movimentação excluída.'))
+                        .catch((error) => { console.error(error); showToast('Erro ao excluir.'); });
                 }
             };
-            const handleAddTransaction = (e) => { e.preventDefault(); const dateInput = getElement('tx-date'), descriptionInput = getElement('tx-description'), amountInput = getElement('tx-amount'); const typeInput = transactionForm.querySelector('input[name="tx-type"]:checked'); const amount = parseFloat(amountInput?.value); if (!dateInput?.value || !descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !typeInput?.value) { showToast("Erro: Preencha todos os campos corretamente.", 4000); return; } transactions.push({ id: Date.now(), date: dateInput.value, description: descriptionInput.value.trim(), amount: amount, type: typeInput.value }); saveData(STORAGE_KEYS.transactions, transactions); renderAll(); closeModal('add-transaction-modal'); showToast('Movimentação adicionada!'); };
+
+            const handleAddTransaction = (e) => {
+                e.preventDefault();
+                const dateInput = getElement('tx-date'), descriptionInput = getElement('tx-description'), amountInput = getElement('tx-amount');
+                const typeInput = transactionForm.querySelector('input[name="tx-type"]:checked');
+                const amount = parseFloat(amountInput?.value);
+                if (!dateInput?.value || !descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !typeInput?.value) {
+                    showToast("Erro: Preencha todos os campos corretamente.", 4000);
+                    return;
+                }
+
+                const newTransaction = {
+                    date: dateInput.value,
+                    description: descriptionInput.value.trim(),
+                    amount: amount,
+                    type: typeInput.value,
+                    createdAt: new Date().toISOString() // Opcional: bom para auditoria
+                };
+
+                const transactionsRef = ref(database, 'financialData/transactions');
+                push(transactionsRef, newTransaction)
+                    .then(() => {
+                        closeModal('add-transaction-modal');
+                        showToast('Movimentação adicionada!');
+                    })
+                    .catch((error) => { console.error(error); showToast('Erro ao salvar movimentação.'); });
+            };
             
             const handleDeletePlanItem = (button) => {
-                const itemId = parseInt(button.dataset.id); if (isNaN(itemId)) return;
-                const itemIndex = planningItems.findIndex(item => item.id === itemId);
-                if (itemIndex > -1) {
-                    planningItems.splice(itemIndex, 1);
-                    saveData(STORAGE_KEYS.planning, planningItems);
-                    renderPlanningTable();
-                    showToast('Item removido do plano.');
+                const itemId = button.dataset.id;
+                if (!itemId) return;
+                remove(ref(database, `financialData/planningItems/${itemId}`))
+                    .then(() => showToast('Item removido do plano.'))
+                    .catch(e => { console.error(e); showToast('Erro ao remover item.'); });
+            };
+            const handleAddPlanItem = (e) => {
+                e.preventDefault();
+                const descriptionInput = getElement('plan-description'), amountInput = getElement('plan-amount');
+                const typeInput = planItemForm.querySelector('input[name="plan-type"]:checked');
+                const amount = parseFloat(amountInput?.value);
+                if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !typeInput?.value) {
+                    showToast("Erro: Preencha todos os campos do plano corretamente.", 4000);
+                    return;
+                }
+                const newPlanItem = {
+                    description: descriptionInput.value.trim(),
+                    amount: amount,
+                    type: typeInput.value
+                };
+                push(ref(database, 'financialData/planningItems'), newPlanItem)
+                    .then(() => {
+                        closeModal('add-plan-item-modal');
+                        showToast('Item adicionado ao plano!');
+                    })
+                    .catch(e => { console.error(e); showToast('Erro ao adicionar item.'); });
+            };
+            const handleClearPlan = () => {
+                if (planningItems.length === 0) { showToast('O plano já está vazio.'); return; }
+                if (confirm('Limpar todo o plano?')) {
+                    set(ref(database, 'financialData/planningItems'), null) // Remove o nó 'planningItems'
+                        .then(() => showToast('Plano limpo.'))
+                        .catch(e => { console.error(e); showToast('Erro ao limpar plano.'); });
                 }
             };
-            const handleAddPlanItem = (e) => { e.preventDefault(); const descriptionInput = getElement('plan-description'), amountInput = getElement('plan-amount'); const typeInput = planItemForm.querySelector('input[name="plan-type"]:checked'); const amount = parseFloat(amountInput?.value); if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !typeInput?.value) { showToast("Erro: Preencha todos os campos do plano corretamente.", 4000); return; } planningItems.push({ id: Date.now(), description: descriptionInput.value.trim(), amount: amount, type: typeInput.value }); saveData(STORAGE_KEYS.planning, planningItems); renderPlanningTable(); closeModal('add-plan-item-modal'); showToast('Item adicionado ao plano!'); };
-            const handleClearPlan = () => { if (planningItems.length === 0) { showToast('O plano já está vazio.'); return; } if (confirm('Limpar todo o plano?')) { planningItems = []; saveData(STORAGE_KEYS.planning, planningItems); renderPlanningTable(); showToast('Plano limpo.'); } };
             
             const handleAddGoal = (e) => {
                 e.preventDefault();
+                // (Esta função e as seguintes de "goal" continuam quase iguais, mas salvam no Firebase)
                 const descriptionInput = getElement('goal-modal-description');
                 const amountInput = getElement('goal-modal-amount');
                 const deadlineInput = addGoalForm.querySelector('input[name="goal-deadline"]:checked');
@@ -1316,8 +1399,7 @@
                 else if (deadlineInput.value === 'long') monthsToAdd = 36;
                 estimatedCompletionDate.setMonth(startDate.getMonth() + monthsToAdd);
 
-                currentGoal = {
-                    id: Date.now(),
+                const newGoal = {
                     description: descriptionInput.value.trim(),
                     targetAmount: targetAmount,
                     deadlineType: deadlineInput.value,
@@ -1326,39 +1408,79 @@
                     squares: Array(shuffledGridValues.length).fill(false),
                     gridValues: shuffledGridValues
                 };
-                saveData(STORAGE_KEYS.goal, currentGoal);
-                renderGoalSection();
-                closeModal('add-goal-modal');
-                showToast('Objetivo definido!');
+                
+                set(ref(database, 'financialData/currentGoal'), newGoal)
+                    .then(() => {
+                        closeModal('add-goal-modal');
+                        showToast('Objetivo definido!');
+                    })
+                    .catch(e => { console.error(e); showToast('Erro ao definir objetivo.'); });
             };
-            const handleSquareClick = (square) => { if (!currentGoal || !currentGoal.squares || !Array.isArray(currentGoal.squares)) return; const index = parseInt(square.dataset.index); if (isNaN(index) || index < 0 || index >= currentGoal.squares.length) return; currentGoal.squares[index] = !currentGoal.squares[index]; saveData(STORAGE_KEYS.goal, currentGoal); renderGoalSection(); square.style.transform = 'scale(0.9)'; setTimeout(() => { if (square) square.style.transform = ''; }, 150); };
-            const handleRemoveGoal = () => { if (!currentGoal) { showToast("Nenhum objetivo ativo."); return; } if (confirm(`Remover objetivo "${escapeHtml(currentGoal.description)}"?`)) { currentGoal = null; saveData(STORAGE_KEYS.goal, currentGoal); renderGoalSection(); showToast("Objetivo removido."); } };
+            const handleSquareClick = (square) => {
+                if (!currentGoal || !currentGoal.squares || !Array.isArray(currentGoal.squares)) return;
+                const index = parseInt(square.dataset.index);
+                if (isNaN(index) || index < 0 || index >= currentGoal.squares.length) return;
+                
+                // Cria uma cópia para não modificar o estado diretamente antes de enviar ao Firebase
+                const updatedSquares = [...currentGoal.squares];
+                updatedSquares[index] = !updatedSquares[index];
+
+                update(ref(database, 'financialData/currentGoal'), { squares: updatedSquares })
+                    .then(() => {
+                        square.style.transform = 'scale(0.9)';
+                        setTimeout(() => { if (square) square.style.transform = ''; }, 150);
+                    })
+                    .catch(e => { console.error(e); showToast('Erro ao salvar progresso.'); });
+            };
+            const handleRemoveGoal = () => {
+                if (!currentGoal) { showToast("Nenhum objetivo ativo."); return; }
+                if (confirm(`Remover objetivo "${escapeHtml(currentGoal.description)}"?`)) {
+                    remove(ref(database, 'financialData/currentGoal'))
+                        .then(() => showToast("Objetivo removido."))
+                        .catch(e => { console.error(e); showToast("Erro ao remover objetivo."); });
+                }
+            };
             
-            const handleAddContaSubmit = (e) => { e.preventDefault(); const descriptionInput = getElement('conta-description'), amountInput = getElement('conta-amount'), dueDateInput = getElement('conta-dueDate'); const amount = parseFloat(amountInput?.value); const dueDate = dueDateInput?.value; if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !dueDate || !isValidDateString(dueDate)) { showToast('Erro: Preencha todos os campos da conta.', 4000); return; } contasAPagar.push({ id: Date.now(), description: descriptionInput.value.trim(), amount: amount, dueDate: dueDate, isPaid: false }); saveData(STORAGE_KEYS.bills, contasAPagar); renderContasAPagar(); closeModal('add-conta-modal'); showToast('Conta adicionada!'); };
+            const handleAddContaSubmit = (e) => {
+                e.preventDefault();
+                const descriptionInput = getElement('conta-description'), amountInput = getElement('conta-amount'), dueDateInput = getElement('conta-dueDate');
+                const amount = parseFloat(amountInput?.value);
+                const dueDate = dueDateInput?.value;
+                if (!descriptionInput?.value.trim() || !amountInput?.value || isNaN(amount) || amount <= 0 || !dueDate || !isValidDateString(dueDate)) {
+                    showToast('Erro: Preencha todos os campos da conta.', 4000); return;
+                }
+                const newConta = {
+                    description: descriptionInput.value.trim(),
+                    amount: amount,
+                    dueDate: dueDate,
+                    isPaid: false
+                };
+                push(ref(database, 'financialData/contasAPagar'), newConta)
+                    .then(() => {
+                        closeModal('add-conta-modal');
+                        showToast('Conta adicionada!');
+                    })
+                    .catch(e => { console.error(e); showToast('Erro ao adicionar conta.'); });
+            };
             const handleMarkAsPaidClick = (button) => {
-                const contaId = parseInt(button.dataset.id); if (isNaN(contaId)) return;
-                const contaIndex = contasAPagar.findIndex(c => c.id === contaId);
-                if (contaIndex > -1) {
-                    contasAPagar[contaIndex].isPaid = true;
-                    saveData(STORAGE_KEYS.bills, contasAPagar);
-                    renderContasAPagar();
-                    showToast(`Conta "${escapeHtml(contasAPagar[contaIndex].description)}" paga.`);
-                } else { showToast("Erro: Conta não encontrada."); }
+                const contaId = button.dataset.id;
+                if (!contaId) return;
+                update(ref(database, `financialData/contasAPagar/${contaId}`), { isPaid: true })
+                    .then(() => showToast(`Conta marcada como paga.`))
+                    .catch(e => { console.error(e); showToast("Erro ao atualizar conta."); });
             };
             const handleDeleteContaClick = (button) => {
-                const contaId = parseInt(button.dataset.id); if (isNaN(contaId)) return;
-                const contaIndex = contasAPagar.findIndex(c => c.id === contaId);
-                if (contaIndex > -1) {
-                    if (confirm(`Excluir conta "${escapeHtml(contasAPagar[contaIndex].description)}"?`)) {
-                        contasAPagar.splice(contaIndex, 1);
-                        saveData(STORAGE_KEYS.bills, contasAPagar);
-                        renderContasAPagar();
-                        showToast('Conta excluída.');
-                    }
-                } else { showToast("Erro: Conta não encontrada."); }
+                const contaId = button.dataset.id;
+                if (!contaId) return;
+                const contaToDelete = contasAPagar.find(c => c.firebaseId === contaId);
+                if (contaToDelete && confirm(`Excluir conta "${escapeHtml(contaToDelete.description)}"?`)) {
+                    remove(ref(database, `financialData/contasAPagar/${contaId}`))
+                        .then(() => showToast('Conta excluída.'))
+                        .catch(e => { console.error(e); showToast("Erro ao excluir conta."); });
+                }
             };
             
-            // --- Funções para Múltiplos Itens de Dívida (MODIFICADO) ---
+            // --- Funções para Múltiplos Itens de Dívida (sem alteração na lógica interna) ---
             const createDebtItemElement = () => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'debt-item';
@@ -1378,19 +1500,12 @@
                 let total = 0;
                 debtItemsContainer.querySelectorAll('.debt-item-amount-input').forEach(input => {
                     const value = parseFloat(input.value);
-                    // MODIFICADO: Aceita valores positivos e negativos, ignorando apenas o que não for número
-                    if (!isNaN(value)) {
-                        total += value;
-                    }
+                    if (!isNaN(value)) { total += value; }
                 });
                 debtorTotalAmountDisplay.textContent = `Total: ${formatCurrency(total)}`;
-                // MODIFICADO: Adiciona classe para feedback visual do total
                 debtorTotalAmountDisplay.classList.remove('positive', 'negative');
-                if (total > 0) {
-                    debtorTotalAmountDisplay.classList.add('positive');
-                } else if (total < 0) {
-                    debtorTotalAmountDisplay.classList.add('negative');
-                }
+                if (total > 0) debtorTotalAmountDisplay.classList.add('positive');
+                else if (total < 0) debtorTotalAmountDisplay.classList.add('negative');
             };
 
             const handleAddPessoaDevendoSubmit = (e) => {
@@ -1398,59 +1513,42 @@
                 const nameInput = getElement('pessoa-devendo-nome');
                 const dateInput = getElement('pessoa-devendo-date');
                 if (!nameInput?.value.trim() || !dateInput?.value || !isValidDateString(dateInput.value)) {
-                    showToast('Erro: Preencha o nome do devedor e a data.', 4000);
-                    return;
+                    showToast('Erro: Preencha o nome do devedor e a data.', 4000); return;
                 }
-
-                const items = [];
-                let isValid = true;
+                const items = []; let isValid = true;
                 debtItemsContainer.querySelectorAll('.debt-item').forEach(itemEl => {
                     const description = itemEl.querySelector('.debt-item-description-input').value.trim();
                     const amount = parseFloat(itemEl.querySelector('.debt-item-amount-input').value);
-                    // MODIFICADO: Aceita valores negativos, mas não zero
-                    if (description && !isNaN(amount) && amount !== 0) {
-                        items.push({ description, amount });
-                    } else if (description || (!isNaN(amount) && amount !== 0)) {
-                        // Marca como inválido se um campo estiver preenchido mas o outro não, ou se for zero
-                        isValid = false;
-                    }
+                    if (description && !isNaN(amount) && amount !== 0) items.push({ description, amount });
+                    else if (description || (!isNaN(amount) && amount !== 0)) isValid = false;
                 });
-
-                if (!isValid) {
-                    showToast('Erro: Preencha todos os itens da dívida corretamente (descrição e valor diferente de zero).', 4000);
-                    return;
-                }
-                if (items.length === 0) {
-                    showToast('Erro: Adicione pelo menos um item à dívida.', 4000);
-                    return;
-                }
+                if (!isValid) { showToast('Erro: Preencha todos os itens da dívida corretamente (descrição e valor diferente de zero).', 4000); return; }
+                if (items.length === 0) { showToast('Erro: Adicione pelo menos um item à dívida.', 4000); return; }
                 
                 const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
 
                 const newDebtor = {
-                    id: Date.now(),
                     name: nameInput.value.trim(),
                     loanDate: dateInput.value,
                     items: items,
                     amount: totalAmount,
-                    isPaid: totalAmount <= 0, // Dívida já nasce paga se o total for 0 ou negativo
+                    isPaid: totalAmount <= 0,
                     payments: []
                 };
                 
-                pessoasDevendo.push(newDebtor);
-                saveData(STORAGE_KEYS.debtors, pessoasDevendo);
-                renderPessoasDevendo();
-                closeModal('add-pessoa-devendo-modal');
-                showToast('Devedor adicionado!');
+                push(ref(database, 'financialData/pessoasDevendo'), newDebtor)
+                    .then(() => {
+                        closeModal('add-pessoa-devendo-modal');
+                        showToast('Devedor adicionado!');
+                    })
+                    .catch(e => { console.error(e); showToast('Erro ao adicionar devedor.'); });
             };
 
             const handleAddPaymentClick = (button) => {
-                const debtorId = parseInt(button.dataset.id);
-                const debtor = pessoasDevendo.find(d => d.id === debtorId);
-                if (!debtor) {
-                    showToast('Erro: Devedor não encontrado.');
-                    return;
-                }
+                const debtorId = button.dataset.id;
+                const debtor = pessoasDevendo.find(d => d.firebaseId === debtorId);
+                if (!debtor) { showToast('Erro: Devedor não encontrado.'); return; }
+
                 const totalPaid = (debtor.payments || []).reduce((sum, p) => sum + p.amount, 0);
                 const remainingAmount = debtor.amount - totalPaid;
 
@@ -1465,107 +1563,94 @@
             
             const handlePaymentFormSubmit = (e) => {
                 e.preventDefault();
-                const debtorId = parseInt(getElement('payment-debtor-id').value);
-                const paymentAmountInput = getElement('payment-amount');
-                const paymentAmount = parseFloat(paymentAmountInput.value);
-
-                const debtorIndex = pessoasDevendo.findIndex(d => d.id === debtorId);
-                if (debtorIndex === -1) {
-                    showToast('Erro: Devedor não encontrado.');
-                    return;
-                }
-
-                const debtor = pessoasDevendo[debtorIndex];
-                const totalPaid = (debtor.payments || []).reduce((sum, p) => sum + p.amount, 0);
-                const remainingAmount = debtor.amount - totalPaid;
-
-                if (isNaN(paymentAmount) || paymentAmount <= 0) {
-                    showToast('Erro: O valor do pagamento deve ser positivo.');
-                    return;
-                }
-                if (paymentAmount > remainingAmount + 0.001) { 
-                    showToast(`Erro: O pagamento não pode ser maior que o valor restante de ${formatCurrency(remainingAmount)}.`);
-                    return;
-                }
-
-                if (!debtor.payments) {
-                    debtor.payments = [];
-                }
-                debtor.payments.push({
-                    amount: paymentAmount,
-                    date: new Date().toISOString().split('T')[0]
-                });
-
-                const newTotalPaid = totalPaid + paymentAmount;
-                if (newTotalPaid >= debtor.amount - 0.001) {
-                    debtor.isPaid = true;
-                }
-
-                saveData(STORAGE_KEYS.debtors, pessoasDevendo);
-                renderPessoasDevendo();
-                closeModal('add-payment-modal');
-                showToast(`Pagamento de ${formatCurrency(paymentAmount)} registrado para ${debtor.name}.`);
-            };
-
-            const handleMarkAsReceivedClick = (button) => {
-                const debtorId = parseInt(button.dataset.id); if (isNaN(debtorId)) return;
-                const debtorIndex = pessoasDevendo.findIndex(d => d.id === debtorId);
-                if (debtorIndex > -1) {
-                    const debtor = pessoasDevendo[debtorIndex];
-                    const totalPaid = (debtor.payments || []).reduce((sum, p) => sum + p.amount, 0);
-                    const remainingAmount = debtor.amount - totalPaid;
-
-                    if (remainingAmount <= 0) {
-                        debtor.isPaid = true;
-                        saveData(STORAGE_KEYS.debtors, pessoasDevendo);
-                        renderPessoasDevendo();
-                        showToast("Esta dívida já foi totalmente paga.");
-                        return;
-                    }
-                    
-                    if (confirm(`Confirmar o recebimento do valor restante de ${formatCurrency(remainingAmount)} para ${debtor.name}?`)) {
-                        if (!debtor.payments) debtor.payments = [];
-                        if (remainingAmount > 0) {
-                           debtor.payments.push({ amount: remainingAmount, date: new Date().toISOString().split('T')[0] });
-                        }
-                        debtor.isPaid = true;
-                        saveData(STORAGE_KEYS.debtors, pessoasDevendo);
-                        renderPessoasDevendo();
-                        showToast(`Valor de ${escapeHtml(debtor.name)} recebido integralmente.`);
-                    }
-                } else { showToast("Erro: Devedor não encontrado."); }
-            };
-            const handleDeleteDebtorClick = (button) => {
-                const debtorId = parseInt(button.dataset.id); if (isNaN(debtorId)) return;
-                const debtorIndex = pessoasDevendo.findIndex(d => d.id === debtorId);
-                if (debtorIndex > -1) {
-                    if (confirm(`Excluir o registro de ${escapeHtml(pessoasDevendo[debtorIndex].name)}?`)) {
-                        pessoasDevendo.splice(debtorIndex, 1);
-                        saveData(STORAGE_KEYS.debtors, pessoasDevendo);
-                        renderPessoasDevendo();
-                        showToast('Registro de devedor excluído.');
-                    }
-                } else { showToast("Erro: Devedor não encontrado."); }
-            };
-            const handleDownloadPdfClick = (button) => {
-                const debtorId = parseInt(button.dataset.id, 10); if (isNaN(debtorId)) return;
-                const debtor = pessoasDevendo.find(d => d.id === debtorId);
-                if (!debtor) { showToast("Erro: Devedor não encontrado."); return; }
-                showToast("Gerando PDF...", 2000);
+                const debtorId = getElement('payment-debtor-id').value;
+                const paymentAmount = parseFloat(getElement('payment-amount').value);
+                
+                const debtor = pessoasDevendo.find(d => d.firebaseId === debtorId);
+                if (!debtor) { showToast('Erro: Devedor não encontrado.'); return; }
                 
                 const totalPaid = (debtor.payments || []).reduce((sum, p) => sum + p.amount, 0);
                 const remainingAmount = debtor.amount - totalPaid;
 
+                if (isNaN(paymentAmount) || paymentAmount <= 0) { showToast('Erro: O valor do pagamento deve ser positivo.'); return; }
+                if (paymentAmount > remainingAmount + 0.001) { showToast(`Erro: O pagamento não pode ser maior que o valor restante de ${formatCurrency(remainingAmount)}.`); return; }
+
+                const newPayment = {
+                    amount: paymentAmount,
+                    date: new Date().toISOString().split('T')[0]
+                };
+
+                const newTotalPaid = totalPaid + paymentAmount;
+                const isNowPaid = newTotalPaid >= debtor.amount - 0.001;
+
+                // Para adicionar um item a uma lista dentro de um objeto, usamos push no caminho do novo pagamento
+                const paymentsRef = ref(database, `financialData/pessoasDevendo/${debtorId}/payments`);
+                push(paymentsRef, newPayment)
+                    .then(() => {
+                        // Se o pagamento quitou a dívida, atualizamos o status 'isPaid'
+                        if (isNowPaid) {
+                            update(ref(database, `financialData/pessoasDevendo/${debtorId}`), { isPaid: true });
+                        }
+                        closeModal('add-payment-modal');
+                        showToast(`Pagamento de ${formatCurrency(paymentAmount)} registrado para ${debtor.name}.`);
+                    })
+                    .catch(e => { console.error(e); showToast('Erro ao registrar pagamento.'); });
+            };
+
+            const handleMarkAsReceivedClick = (button) => {
+                const debtorId = button.dataset.id;
+                const debtor = pessoasDevendo.find(d => d.firebaseId === debtorId);
+                if (!debtor) { showToast("Erro: Devedor não encontrado."); return; }
+                
+                const totalPaid = (debtor.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                const remainingAmount = debtor.amount - totalPaid;
+
+                if (remainingAmount <= 0) {
+                    update(ref(database, `financialData/pessoasDevendo/${debtorId}`), { isPaid: true });
+                    showToast("Esta dívida já foi totalmente paga.");
+                    return;
+                }
+                
+                if (confirm(`Confirmar o recebimento do valor restante de ${formatCurrency(remainingAmount)} para ${debtor.name}?`)) {
+                    const finalPayment = { amount: remainingAmount, date: new Date().toISOString().split('T')[0] };
+                    push(ref(database, `financialData/pessoasDevendo/${debtorId}/payments`), finalPayment)
+                        .then(() => {
+                            update(ref(database, `financialData/pessoasDevendo/${debtorId}`), { isPaid: true });
+                            showToast(`Valor de ${escapeHtml(debtor.name)} recebido integralmente.`);
+                        })
+                        .catch(e => { console.error(e); showToast('Erro ao quitar dívida.'); });
+                }
+            };
+            const handleDeleteDebtorClick = (button) => {
+                const debtorId = button.dataset.id;
+                const debtor = pessoasDevendo.find(d => d.firebaseId === debtorId);
+                if (debtor && confirm(`Excluir o registro de ${escapeHtml(debtor.name)}?`)) {
+                    remove(ref(database, `financialData/pessoasDevendo/${debtorId}`))
+                        .then(() => showToast('Registro de devedor excluído.'))
+                        .catch(e => { console.error(e); showToast('Erro ao excluir registro.'); });
+                }
+            };
+            const handleDownloadPdfClick = (button) => {
+                const debtorId = button.dataset.id;
+                const debtor = pessoasDevendo.find(d => d.firebaseId === debtorId);
+                if (!debtor) { showToast("Erro: Devedor não encontrado."); return; }
+                
+                showToast("Gerando PDF...", 2000);
+                
+                const totalPaid = (debtor.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                const remainingAmount = debtor.amount - totalPaid;
+                const paymentsArray = firebaseDataToObject(debtor.payments); // Converte objeto de pagamentos para array
+
                 const invoiceTemplate = getElement('pdf-invoice-template');
                 getElement('invoice-status').textContent = debtor.isPaid ? 'Recebido' : 'Em Aberto';
                 getElement('invoice-status').className = debtor.isPaid ? 'status-paid' : 'status-unpaid';
-                getElement('invoice-number').textContent = `#INV-${debtor.id}`;
+                getElement('invoice-number').textContent = `#INV-${debtorId.substring(1, 7).toUpperCase()}`;
                 getElement('invoice-date-issued').textContent = formatDate(debtor.loanDate);
                 getElement('invoice-bill-to-name').textContent = escapeHtml(debtor.name);
                 
                 const itemsBody = getElement('invoice-items-body');
                 itemsBody.innerHTML = '';
-                debtor.items.forEach(item => {
+                (debtor.items || []).forEach(item => {
                     const row = document.createElement('tr');
                     row.innerHTML = `<td class="item-description">${escapeHtml(item.description)}</td><td class="item-amount">${formatCurrency(item.amount)}</td>`;
                     itemsBody.appendChild(row);
@@ -1577,9 +1662,9 @@
 
                 const paymentsTable = getElement('invoice-payments-table');
                 paymentsTable.innerHTML = '';
-                if(debtor.payments && debtor.payments.length > 0) {
+                if(paymentsArray.length > 0) {
                      getElement('invoice-payments-section').style.display = 'block';
-                     debtor.payments.forEach(p => {
+                     paymentsArray.forEach(p => {
                         const row = paymentsTable.insertRow();
                         row.innerHTML = `<td>Pagamento em ${formatDate(p.date)}</td><td style="text-align: right;">${formatCurrency(p.amount)}</td>`;
                      });
@@ -1594,7 +1679,7 @@
                     const pdfWidth = pdf.internal.pageSize.getWidth();
                     const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
                     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                    const fileName = `cobranca-${debtor.name.replace(/ /g, '_')}-${debtor.id}.pdf`;
+                    const fileName = `cobranca-${debtor.name.replace(/ /g, '_')}-${debtorId.substring(1, 5)}.pdf`;
                     pdf.save(fileName);
                     showToast("PDF baixado com sucesso!", 3500);
                 }).catch(err => {
@@ -1603,7 +1688,7 @@
                 });
             };
 
-            // --- Manipulação de Modais ---
+            // --- Manipulação de Modais (sem alteração) ---
             const openModal = (modalId) => {
                 const modal = getElement(modalId); if (!modal) return;
                 const form = modal.querySelector('form'); if (form) form.reset();
@@ -1628,7 +1713,7 @@
                 setTimeout(() => { if (modal) { modal.style.display = 'none'; modal.style.animation = ''; } }, 400);
             };
 
-            // --- Menu Mobile e Navegação ---
+            // --- Menu Mobile e Navegação (sem alteração) ---
             const toggleMenu = () => {
                 sidebar.classList.toggle('is-open');
                 menuOverlay.classList.toggle('is-active');
@@ -1664,8 +1749,11 @@
                 renderGoalSection();
                 renderContasAPagar();
                 renderPessoasDevendo();
-                renderOrUpdateDashboardChart();
-                renderReportSectionCharts();
+                // Atraso nos gráficos para garantir que a seção esteja visível e o canvas tenha dimensões
+                setTimeout(() => {
+                    renderOrUpdateDashboardChart();
+                    renderReportSectionCharts();
+                }, 100);
             };
             
             const setupDateButtons = () => {
@@ -1697,11 +1785,17 @@
             
             // --- INICIALIZAÇÃO E LISTENERS DE EVENTOS ---
             const initializeApp = () => {
-                console.log("Initializing Responsive Finance App v10.8...");
-                loadData();
-                renderAll();
+                console.log("Initializing Firebase Finance App v10.8...");
+                
+                // Configura os ouvintes de eventos da UI
+                setupEventListeners();
                 setupDateButtons();
 
+                // Começa a ouvir os dados do Firebase, o que irá acionar a primeira renderização
+                initializeFirebaseListeners();
+            };
+
+            const setupEventListeners = () => {
                 // Listeners de Abertura de Modal e Ações Globais
                 if (menuToggleBtn) menuToggleBtn.addEventListener('click', toggleMenu);
                 if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
@@ -1765,7 +1859,7 @@
                 if(addDebtItemBtn) addDebtItemBtn.addEventListener('click', () => {
                     debtItemsContainer.appendChild(createDebtItemElement());
                 });
-                if(debtItemsContainer) debtItemsContainer.addEventListener('click', (e) => {
+                    if(debtItemsContainer) debtItemsContainer.addEventListener('click', (e) => {
                     if (e.target.classList.contains('remove-debt-item-btn')) {
                         e.target.closest('.debt-item').remove();
                         updateDebtorTotal();
@@ -1776,7 +1870,7 @@
                         updateDebtorTotal();
                     }
                 });
-                console.log("App Initialized Successfully.");
+                console.log("App Event Listeners Initialized.");
             };
 
             initializeApp();
@@ -1784,4 +1878,3 @@
     </script>
 </body>
 </html>
-
